@@ -1,5 +1,17 @@
 #!/bin/bash
 
+#-FR---------------------------------------------
+#Pour executer automatiquement le script, ajouter le lien du script dans:
+#/etc/profile
+#Exemple : /home/pi/telegram/telegram.sh
+#------------------------------------------------
+
+#-EN---------------------------------------------
+#To automatically launch the script add the script path in:
+#/etc/profile
+#Example: /home/pi/telegram/telegram.sh
+#------------------------------------------------
+
 source /home/pi/telegram/telegram.credentials.sh
 source /home/pi/telegram/telegram.functions.sh
 
