@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#Phips
+#Version : 2024.11.05 11:15
+
 # Variables d'environnement
 EXPECTED_ADDR="0.0.0.0"  # À remplacer par l'adresse IP attendue
 BOT_TOKEN="xxxx:XXXX"  # Token randomisé
@@ -30,3 +33,4 @@ else
     # Affichage d'un message de vérification
     echo "L'adresse IP actuelle ($CURRENT_ADDR) correspond à l'adresse IP attendue ($EXPECTED_ADDR). Aucune alerte envoyée."
 fi
+
