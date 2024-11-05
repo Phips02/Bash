@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Variables d'environnement
+EXPECTED_ADDR="0.0.0.0"  # À remplacer par l'adresse IP attendue
+BOT_TOKEN="xxxx:XXXX"  # Token randomisé
+CHAT_ID="123456789"  # ID de chat randomisé
+HOST_NAME="NomDeMachineRandom"  # Nom de la machine randomisé
+
+# Récupération du timestamp
+TIMESTAMP=$(date "+%F %H:%M:%S")
+
+# Récupération de l'IP publique actuelle
+CURRENT_ADDR=$(curl -s ifconfig.me)
+
+# Vérification de la correspondance d'IP
+if [ "$CURRENT_ADDR" != "$EXPECTED_ADDR" ]; then
+    ALERT_MSG="⚠️ *ALERTE :* %0A\
+*Nouvelle IP publique détectée.*%0A\
+Machine : $HOST_NAME %0A\
+Date : $TIMESTAMP %0A\
+IP actuelle : $CURRENT_ADDR %0A\
+IP attendue : $EXPECTED_ADDR"
+
+    # Envoi de l'alerte via Telegram
+    curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+        -d chat_id="$CHAT_ID" \
+        -d text="$ALERT_MSG" \
+        -d parse_mode="Markdown" > /dev/null
+else
+    # Affichage d'un message de vérification
+    echo "L'adresse IP actuelle ($CURRENT_ADDR) correspond à l'adresse IP attendue ($EXPECTED_ADDR). Aucune alerte envoyée."
+fi
