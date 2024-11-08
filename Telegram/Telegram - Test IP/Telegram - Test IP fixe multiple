@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# Variables d'environnement
+EXPECTED_ADDR="0.0.0.0"  # IP publique attendue
+BOT_TOKEN="xxxx:XXXX"  # Token du bot Telegram
+CHAT_ID="123456789"  # Chat ID Telegram
+HOST_NAME="NomDeMachineRandom"  # Nom de la machine
+
+# Liste des méthodes triées par ordre alphabétique des sites
+declare -a tests=(
+    "curl -s http://api.ipify.org"
+    "curl -s https://api.ipify.org"
+    "curl -s http://checkip.amazonaws.com"
+    "curl -s https://checkip.amazonaws.com"
+    "curl -s http://icanhazip.com"
+    "curl -s https://icanhazip.com"
+    "curl -s http://ifconfig.me"
+    "curl -s https://ifconfig.me"
+    "wget -qO- http://ifconfig.me"
+    "wget -qO- https://ifconfig.me"
+    "dig +short myip.opendns.com @resolver1.opendns.com"
+)
+
+# Récupération de la date
+DATE=$(date "+%F %H:%M:%S")
+
+# Variable pour suivre les incohérences d'IP
+alert_needed=false
+alert_message="⚠️ *ALERTE :* %0A*Nouvelle IP publique détectée.*%0AMachine : $HOST_NAME %0ADate : $DATE %0A"
+
+# Vérification de chaque méthode
+echo "Début de la vérification de l'IP publique avec plusieurs méthodes..."
+for method in "${tests[@]}"; do
+    CURRENT_IP=$($method)
+    # Extraction de l'URL et du type de commande (curl, wget, etc.)
+    method_url=$(echo "$method" | awk '{print $3}')
+    method_type=$(echo "$method" | awk '{print $1}')
+
+    # Si une IP est récupérée et différente de l'IP attendue
+    if [[ $CURRENT_IP =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && [ "$CURRENT_IP" != "$EXPECTED_ADDR" ]; then
+        echo "Incohérence détectée avec $method : IP actuelle = $CURRENT_IP, IP attendue = $EXPECTED_ADDR"
+        alert_needed=true
+        alert_message+="$CURRENT_IP => $method_url ($method_type) %0A"
+    else
+        echo "Méthode $method : IP conforme ($CURRENT_IP)"
+    fi
+done
+
+# Envoi d'une alerte Telegram si une incohérence est détectée
+if [ "$alert_needed" = true ]; then
+    echo "Envoi de l'alerte Telegram..."
+    curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+        -d chat_id="$CHAT_ID" \
+        -d text="$alert_message" \
+        -d parse_mode="Markdown" > /dev/null
+    echo "Alerte envoyée avec les incohérences d'IP."
+else
+    echo "Aucune incohérence détectée dans l'IP publique. Pas d'alerte envoyée."
+fi
