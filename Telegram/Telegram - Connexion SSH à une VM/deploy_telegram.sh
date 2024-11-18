@@ -1,6 +1,7 @@
 #!/bin/bash
-# Version 2.2
+
 # Phips
+# Version 2.2
 
 # Ce script permet de déployer la stack de notification
 
