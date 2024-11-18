@@ -14,7 +14,7 @@
 # Charger les identifiants depuis le fichier de configuration sécurisé
 source /etc/ftp_config.cfg
 
-API="https://api.telegram.org/bot${TELEGRAM_BOT_API_KEY}"
+API="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}"
 
 # Fonction pour envoyer un message via Telegram
 function telegram_text_send() {
