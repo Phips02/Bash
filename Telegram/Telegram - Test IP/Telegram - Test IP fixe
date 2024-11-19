@@ -4,10 +4,10 @@
 #Version : 2024.11.05 11:15
 
 # Variables d'environnement
-EXPECTED_ADDR="0.0.0.0"  # À remplacer par l'adresse IP attendue
-BOT_TOKEN="xxxx:XXXX"  # Token randomisé
-CHAT_ID="123456789"  # ID de chat randomisé
-HOST_NAME="NomDeMachineRandom"  # Nom de la machine randomisé
+EXPECTED_ADDR="0.0.0.0"                                      # À remplacer par l'adresse IP attendue
+BOT_TOKEN="1234567890:ABCDEFGHIJKLMNOpqrstuvwxYZ1234567890"  # Token randomisé
+CHAT_ID="-987654321"                                         # ID de chat randomisé
+HOST_NAME="NomDeMachineRandom"                               # Nom de la machine randomisé
 
 # Récupération du timestamp
 TIMESTAMP=$(date "+%F %H:%M:%S")

@@ -1,19 +1,22 @@
-#!bin/bash
+#!/bin/bash
 
-source /home/pi/telegram/telegram.credentials.sh
+source /etc/telegram/dyndns/telegram.credentials.sh
 
-API="https://api.telegram.org/bot${KEY}"
+API="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}"
 
-function telegram_text_send()
+function telegram_text_send() {
+    local API="$API"
+    local CHATID="$TELEGRAM_CHAT_ID"
+    local PARSE_MODE="markdown"
+    local TEXT="$1"
+    local ENDPOINT="sendMessage"
 
-{
-	API="$1"
-	CHATID="$2"
-	KEY="$3"
-	PARSE_MODE="$4"
-	TEXT="$5"
-	ENDPOINT="sendMessage"
+    if [ -z "$CHATID" ] || [ -z "$TEXT" ]; then
+	echo "---------------------------------------------"
+        echo "Erreur : Le chat ID ou le texte est manquant."
+	echo "---------------------------------------------"
+        return 1
+    fi
 
 	curl -s -d "chat_id=${CHATID}&text=${TEXT}&parse_mode=${PARSE_MODE}" ${API}/${ENDPOINT} >/dev/null
-
 }

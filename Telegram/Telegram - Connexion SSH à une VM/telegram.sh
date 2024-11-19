@@ -3,25 +3,34 @@
 #-FR---------------------------------------------
 #Pour executer automatiquement le script, ajouter le lien du script dans:
 #/etc/profile
-#Exemple : /home/pivpn/Bureau/telegram/telegram.sh
+#Exemple : /usr/local/bin/notif_connexion/telegram.sh
 #------------------------------------------------
 
-#-EN---------------------------------------------
-#To automatically launch the script add the script path in:
-#/etc/profile
-#Example: /home/pi/telegram/telegram.sh
-#------------------------------------------------
+source /usr/local/bin/notif_connexion/telegram.functions.sh
 
-source /home/pivpn/Bureau/telegram/telegram.credentials.sh
-source /home/pivpn/Bureau/telegram/telegram.functions.sh
-
+# Récupération des informations système
 DATE=$(date "+%F %H:%M:%S")
 IP_DEVICE=$(hostname -I | cut -d " " -f1)
-MAC_ADDRESS=$(ifconfig | grep ether | cut -d " " -f10)
+MAC_ADDRESS=$(ip link show | grep ether | awk '{print $2}')
 IP_LOCAL=$(echo $SSH_CLIENT |cut -d " " -f1)
-IP_PUBLIC=$(curl -s ipinfo.io/ip)
-COUNTRY=$(curl -s ipinfo.io/country)
+#IP_LOCAL=$(hostname -I | awk '{print $1}')
 
+# Récupération des informations publiques
+IPINFO=$(curl -s ipinfo.io)
+IP_PUBLIC=$(echo "$IPINFO" | jq -r '.ip')
+COUNTRY=$(echo "$IPINFO" | jq -r '.country')
+
+# Validation des informations récupérées
+if [ -z "$IP_PUBLIC" ]; then
+    IP_PUBLIC="Indisponible"
+fi
+
+# Validation de l'IP locale
+if [ -z "$IP_LOCAL" ]; then
+    IP_LOCAL="Indisponible"
+fi
+
+# Construction du message
 TEXT="$DATE %0A\
 Connection from : %0A\
 Local IP : $IP_LOCAL %0A\
@@ -31,7 +40,7 @@ Country : $COUNTRY %0A\
 Device : $HOSTNAME %0A\
 IP : $IP_DEVICE %0A\
 MAC address : $MAC_ADDRESS %0A\
-User : $USER"\
+User : $USER"
 
-
-telegram_text_send "$API" "$CHATID" "$KEY" "markdown" "$TEXT"
+# Envoi du message Telegram
+telegram_text_send "$TEXT"

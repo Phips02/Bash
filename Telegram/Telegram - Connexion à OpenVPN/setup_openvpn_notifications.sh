@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Variables
-SCRIPTS_DIR="/usr/local/bin"
-SERVER_CONF="/etc/openvpn/server.conf"
-CREDENTIALS_FILE="/etc/openvpn/telegram_credentials"
+SCRIPTS_DIR="/usr/local/bin/open_vpn"
+SERVER_CONF="/etc/telegram/open_vpn/server.conf"
+CREDENTIALS_FILE="/etc/telegram/open_vpn/telegram_credentials.sh"
 
 # Fonction pour envoyer une notification de test
 send_test_notification() {

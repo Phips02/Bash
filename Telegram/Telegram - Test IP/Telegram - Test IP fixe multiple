@@ -4,10 +4,10 @@
 #Version : 2024.11.08 17:40
 
 # Variables d'environnement
-EXPECTED_ADDR="0.0.0.0"  # IP publique attendue
-BOT_TOKEN="xxxx:XXXX"  # Token du bot Telegram
-CHAT_ID="123456789"  # Chat ID Telegram
-HOST_NAME="NomDeMachineRandom"  # Nom de la machine
+EXPECTED_ADDR="0.0.0.0"                                      # IP publique attendue
+BOT_TOKEN="1234567890:ABCDEFGHIJKLMNOpqrstuvwxYZ1234567890"  # Token du bot Telegram
+CHAT_ID="-987654321"                                         # Chat ID Telegram
+HOST_NAME="NomDeMachineRandom"                               # Nom de la machine
 
 # Liste des méthodes triées par ordre alphabétique des sites
 declare -a tests=(

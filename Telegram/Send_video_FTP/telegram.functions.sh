@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#A placer dans /usr/local/bin/telegram.functions.sh
+#A placer dans /usr/local/bin/ftp_video/telegram.functions.sh
 
 
 #Phips
@@ -12,7 +12,7 @@
 
 
 # Charger les identifiants depuis le fichier de configuration sécurisé
-source /etc/ftp_config.cfg
+source /etc/telegram/ftp_video/ftp_config.cfg
 
 API="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}"
 

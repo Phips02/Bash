@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Envoyer le message à Telegram
-BOT_TOKEN="0000000000:00000000000000000000000000000000000"
-CHAT_ID="000000000"
+BOT_TOKEN="1234567890:ABCDEFGHIJKLMNOpqrstuvwxYZ1234567890"
+CHAT_ID="-987654321"
 URL="https://api.telegram.org/bot$BOT_TOKEN/sendMessage"
 
 DATE=$(date "+%F %H:%M:%S")

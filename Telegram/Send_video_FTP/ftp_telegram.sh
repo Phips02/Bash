@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#A placer dans /usr/local/bin/ftp_telegram.sh
+#A placer dans /usr/local/bin/ftp_video/ftp_telegram.sh
 
 
 #Phips
@@ -10,7 +10,7 @@
 set -x
 
 # Charger la configuration depuis le fichier
-CONFIG_FILE="/etc/ftp_config.cfg"
+CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
 source $CONFIG_FILE
 
 # Définir les répertoires et fichiers
