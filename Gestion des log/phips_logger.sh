@@ -1,5 +1,16 @@
 #!/bin/bash
 
+#A placer dans /usr/local/bin/phips_logger.sh
+
+#Phips
+#Version : 2024.12.22 20:10
+
+
+# Configuration du logger dans /etc/telegram/ftp_video/ftp_config.cfg
+#LOGGER_PATH="/usr/local/bin/phips_logger.sh"
+#LOG_FILE="/var/log/ftp_telegram/ftp_telegram.log"
+
+
 # Configuration par défaut
 DEFAULT_LOG_FILE="./custom_script.log"
 DEFAULT_LOG_LEVEL="INFO"

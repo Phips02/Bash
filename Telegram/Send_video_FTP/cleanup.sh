@@ -67,13 +67,18 @@ manage_logs() {
     if [ -d "$LOG_DIR" ]; then
         log_info "cleanup" "Gestion des fichiers de log dans: $LOG_DIR"
         
-        # Compression des logs d'hier
-        find "$LOG_DIR" -name "*.log" -type f -mtime 1 -exec gzip {} \;
+        # Compression des logs d'hier avec le bon format de nom
+        find "$LOG_DIR" -name "ftp_telegram_*.log" -type f -dayold 1 | while read logfile; do
+            base_name=$(basename "$logfile" .log)
+            gzip -f "$logfile"
+            log_info "cleanup" "Compression du fichier: $logfile"
+        done
         
         # Suppression des logs plus vieux que MAX_LOG_DAYS
-        find "$LOG_DIR" -name "*.log.gz" -type f -mtime +$MAX_LOG_DAYS -delete
+        find "$LOG_DIR" -name "ftp_telegram_*.log.gz" -type f -mtime +$MAX_LOG_DAYS -delete
     else
         log_warning "cleanup" "Dossier de logs non trouvé: $LOG_DIR"
+        mkdir -p "$LOG_DIR"
     fi
 }
 
@@ -115,6 +120,14 @@ EOF
 
     rm -f "$temp_script"
     return $exit_code
+}
+
+# Fonction pour obtenir le chemin du fichier de log avec la date
+get_log_file() {
+    local base_log_file="${LOG_FILE:-$DEFAULT_LOG_FILE}"
+    local log_dir=$(dirname "$base_log_file")
+    local log_name="ftp_telegram"
+    echo "${log_dir}/${log_name}_$(date +%Y-%m-%d).log"
 }
 
 # Exécution des fonctions de nettoyage

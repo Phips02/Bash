@@ -30,13 +30,7 @@ Bibliothèque de fonctions Telegram dans `/usr/local/bin/ftp_video/telegram.func
 - Gestion des messages Telegram
 - Gestion des erreurs de communication
 
-### 4. test_ftp.sh
-Script de test FTP dans `/usr/local/bin/ftp_video/test_ftp.sh`
-- Vérification de la connexion FTP
-- Liste le contenu du répertoire FTP
-- Diagnostic des problèmes de connexion
-
-### 5. cleanup.sh
+### 4. cleanup.sh
 Script de nettoyage automatique dans `/usr/local/bin/ftp_video/cleanup.sh`
 - Nettoyage du fichier d'état des envois
 - Nettoyage du dossier temporaire
@@ -82,7 +76,6 @@ sudo chmod 664 /var/log/ftp_telegram/ftp_telegram.log
 sudo touch /etc/telegram/ftp_video/ftp_config.cfg
 sudo touch /usr/local/bin/ftp_video/ftp_telegram.sh
 sudo touch /usr/local/bin/ftp_video/telegram.functions.sh
-sudo touch /usr/local/bin/ftp_video/test_ftp.sh
 sudo touch /usr/local/bin/ftp_video/cleanup.sh
 sudo touch /usr/local/bin/phips_logger.sh
 
@@ -100,7 +93,6 @@ sudo chmod 600 /etc/telegram/ftp_video/ftp_config.cfg
 sudo nano /etc/telegram/ftp_video/ftp_config.cfg
 sudo nano /usr/local/bin/ftp_video/ftp_telegram.sh
 sudo nano /usr/local/bin/ftp_video/telegram.functions.sh
-sudo nano /usr/local/bin/ftp_video/test_ftp.sh
 sudo nano /usr/local/bin/ftp_video/cleanup.sh
 sudo nano /usr/local/bin/phips_logger.sh
 ```
@@ -130,8 +122,8 @@ crontab -l
 /usr/local/bin/ftp_video/
 ├── ftp_telegram.sh
 ├── telegram.functions.sh
-├── test_ftp.sh
-└── cleanup.sh
+├── cleanup.sh
+└── phips_logger.sh
 
 /var/tmp/
 ├── FTP_TEMP/
@@ -147,16 +139,17 @@ crontab -l
 ### Test initial
 ```bash
 # Test manuel du script
-sudo /usr/local/bin/ftp_video/ftp_telegram.sh
+/usr/local/bin/ftp_video/ftp_telegram.sh
 
 # Vérification des logs
-tail -f /var/log/ftp_telegram.log
+tail -f /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
 ```
 
-### Test de la connexion FTP
+### Vérification de la connexion Telegram
 ```bash
-# Exécution du script de test FTP
-sudo /usr/local/bin/ftp_video/test_ftp.sh
+# Test de la connexion Telegram via les fonctions
+source /usr/local/bin/ftp_video/telegram.functions.sh
+validate_telegram_token && test_telegram_send
 ```
 
 ### Vérification des fichiers

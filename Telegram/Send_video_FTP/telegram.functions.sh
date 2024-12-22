@@ -20,19 +20,41 @@ if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
     exit 1
 fi
 
-# Ajouter une fonction de validation du token
+# Fonction de validation complète de Telegram
 function validate_telegram_token() {
     local response
-    response=$(curl -s "${API}/getMe")
-    if ! echo "$response" | grep -q '"ok":true'; then
-        log_error "telegram" "Token Telegram invalide"
-        return 1
-    fi
-    return 0
+    local retry_count=0
+    local max_retries=3
+
+    while [ $retry_count -lt $max_retries ]; do
+        response=$(curl -s "${API}/getMe")
+        if echo "$response" | grep -q '"ok":true'; then
+            log_info "telegram" "Validation du token Telegram réussie"
+            return 0
+        fi
+        
+        ((retry_count++))
+        log_warning "telegram" "Échec de la validation du token (tentative $retry_count/$max_retries)"
+        sleep 2
+    done
+
+    log_error "telegram" "Échec de la validation du token après $max_retries tentatives"
+    return 1
 }
 
-# Ajouter la validation au début du script
-validate_telegram_token || exit 1
+# Fonction de test d'envoi de message
+function test_telegram_send() {
+    local test_message="Test de connexion Telegram"
+    
+    log_info "telegram" "Test d'envoi de message Telegram"
+    if telegram_text_send "HTML" "$test_message"; then
+        log_info "telegram" "Test d'envoi réussi"
+        return 0
+    else
+        log_error "telegram" "Échec du test d'envoi"
+        return 1
+    fi
+}
 
 # Fonction pour envoyer un message via Telegram
 function telegram_text_send() {
