@@ -1,8 +1,50 @@
 #Phips
-#Version : 2024.12.22 13:41
+#Version : 2024.12.22 15:05
 
 
 # Système d'envoi automatique de vidéos FTP vers Telegram
+
+## Description
+Ce système permet de récupérer automatiquement des fichiers vidéo (.mkv) depuis un serveur FTP et de les envoyer vers un groupe Telegram. Le système parcourt récursivement les sous-dossiers du FTP pour traiter tous les fichiers vidéo.
+
+## Description des scripts
+
+### 1. ftp_config.cfg
+Fichier de configuration situé dans `/etc/telegram/ftp_video/ftp_config.cfg`
+- Configuration du serveur FTP (host, port, credentials)
+- Configuration Telegram (bot token, chat ID)
+- Configuration du logger (chemin et fichier de log)
+
+### 2. ftp_telegram.sh
+Script principal situé dans `/usr/local/bin/ftp_video/ftp_telegram.sh`
+- Vérification complète de la configuration et des dépendances
+- Gestion des erreurs améliorée
+- Traitement récursif des dossiers FTP avec exclusion des dossiers système (@eaDir, @tmp)
+- Système de retry pour l'envoi Telegram (3 tentatives)
+- Gestion des descriptions avec nom du dossier source et nom du fichier
+- Nettoyage automatique des fichiers temporaires
+
+### 3. telegram.functions.sh
+Bibliothèque de fonctions Telegram dans `/usr/local/bin/ftp_video/telegram.functions.sh`
+- Validation du token Telegram
+- Gestion des messages Telegram
+- Gestion des erreurs de communication
+
+### 4. test_ftp.sh
+Script de test FTP dans `/usr/local/bin/ftp_video/test_ftp.sh`
+- Vérification de la connexion FTP
+- Liste le contenu du répertoire FTP
+- Diagnostic des problèmes de connexion
+
+### 5. cleanup.sh
+Script de nettoyage automatique dans `/usr/local/bin/ftp_video/cleanup.sh`
+- Nettoyage du fichier d'état des envois
+- Nettoyage du dossier temporaire
+- Gestion de la rotation des logs (compression après 1 jour)
+- Suppression des logs de plus de 30 jours
+- Nettoyage récursif des fichiers .mkv sur le FTP
+- Suppression des dossiers vides sur le FTP
+
 
 ## Prérequis
 ```bash
@@ -11,128 +53,184 @@ sudo apt update
 sudo apt install lftp curl
 ```
 
-## Description
-Ce système permet de récupérer automatiquement des fichiers vidéo (.mkv) depuis un serveur FTP et de les envoyer vers un groupe Telegram. Il est composé de trois fichiers principaux qui travaillent ensemble pour assurer cette fonction.
+## Déploiement
 
-## Description des scripts
-
-### 1. ftp_config.cfg
-`ftp_config.cfg` pour configurer les paramètres de connexion
-- Les accès FTP (serveur, identifiants)
-- Les accès Telegram (token, chat ID)
-- Les chemins des dossiers
-
-### 2. ftp_telegram.sh
-`ftp_telegram.sh` pour télécharger et envoyer les vidéos vers Telegram
-- Télécharge les vidéos depuis le FTP
-- Les envoie vers Telegram
-- Garde une trace des envois
-
-### 3. telegram.functions.sh
-`telegram.functions.sh` pour gérer les communications avec Telegram
-- Gère la communication avec Telegram
-- Vérifie les paramètres
-
-## Déploiement rapide
-
-1. **Créer les dossiers nécessaires** :
+1. **Création des dossiers** :
 ```bash
 sudo mkdir -p /etc/telegram/ftp_video
 sudo mkdir -p /usr/local/bin/ftp_video
 sudo mkdir -p /var/tmp/FTP_TEMP
+sudo mkdir -p /var/log/ftp_telegram
 ```
 
-2. **Copier les fichiers** :
+2. **Configuration des permissions** :
 ```bash
-sudo cp ftp_config.cfg /etc/telegram/ftp_video/
-sudo cp ftp_telegram.sh /usr/local/bin/ftp_video/
-sudo cp telegram.functions.sh /usr/local/bin/ftp_video/
+# Définir les permissions des dossiers
+sudo chown -R $USER:$USER /usr/local/bin/ftp_video
+sudo chown -R $USER:$USER /var/log/ftp_telegram
+sudo chmod 755 /var/log/ftp_telegram
+
+# Créer le fichier de log
+sudo touch /var/log/ftp_telegram/ftp_telegram.log
+sudo chown $USER:$USER /var/log/ftp_telegram/ftp_telegram.log
+sudo chmod 664 /var/log/ftp_telegram/ftp_telegram.log
 ```
 
-3. **Configurer les permissions** :
+3. **Création des fichiers** :
 ```bash
-sudo chmod +x /usr/local/bin/ftp_video/ftp_telegram.sh
-sudo chmod +x /usr/local/bin/ftp_video/telegram.functions.sh
+# Création des fichiers de configuration et des scripts
+sudo touch /etc/telegram/ftp_video/ftp_config.cfg
+sudo touch /usr/local/bin/ftp_video/ftp_telegram.sh
+sudo touch /usr/local/bin/ftp_video/telegram.functions.sh
+sudo touch /usr/local/bin/ftp_video/test_ftp.sh
+sudo touch /usr/local/bin/ftp_video/cleanup.sh
+sudo touch /usr/local/bin/phips_logger.sh
+
+# Rendre les scripts exécutables
+sudo chmod +x /usr/local/bin/ftp_video/*.sh
+sudo chmod +x /usr/local/bin/phips_logger.sh
+
+# Définir les bonnes permissions pour le fichier de configuration
 sudo chmod 600 /etc/telegram/ftp_video/ftp_config.cfg
 ```
 
-4. **Configurer ftp_config.cfg** :
+4. **Édition des fichiers** :
 ```bash
+# Éditer les fichiers avec votre éditeur préféré (exemple avec nano)
 sudo nano /etc/telegram/ftp_video/ftp_config.cfg
-# Modifier les paramètres selon votre configuration
+sudo nano /usr/local/bin/ftp_video/ftp_telegram.sh
+sudo nano /usr/local/bin/ftp_video/telegram.functions.sh
+sudo nano /usr/local/bin/ftp_video/test_ftp.sh
+sudo nano /usr/local/bin/ftp_video/cleanup.sh
+sudo nano /usr/local/bin/phips_logger.sh
 ```
 
-5. **Configurer la tâche CRON** :
+5. **Configuration CRON** :
 ```bash
-sudo crontab -e
-# Ajouter la ligne :
-* * * * * /usr/local/bin/ftp_video/ftp_telegram.sh >> /var/log/ftp_telegram.log 2>&1
+# Éditer le crontab de l'utilisateur (PAS root)
+crontab -e
+
+# Ajouter les lignes suivantes :
+# Pour l'exécution du script principal toutes les minutes
+* * * * * /usr/local/bin/ftp_video/ftp_telegram.sh
+
+# Pour le nettoyage quotidien à minuit
+0 0 * * * /usr/local/bin/ftp_video/cleanup.sh
+
+# Vérifier que le crontab est bien configuré
+crontab -l
 ```
 
-## Structure des fichiers
+## Fichiers et dossiers importants
 
+```
 /etc/telegram/ftp_video/
 └── ftp_config.cfg
 
 /usr/local/bin/ftp_video/
 ├── ftp_telegram.sh
-└── telegram.functions.sh
+├── telegram.functions.sh
+├── test_ftp.sh
+└── cleanup.sh
 
-## Test et vérification
+/var/tmp/
+├── FTP_TEMP/
+└── FTP_FILES_SEEN.txt
+
+/var/log/ftp_telegram/
+├── ftp_telegram_YYYY-MM-DD.log
+└── ftp_telegram_YYYY-MM-DD.log.gz
+```
+
+## Vérification et tests
 
 ### Test initial
 ```bash
-# Tester le script manuellement
+# Test manuel du script
 sudo /usr/local/bin/ftp_video/ftp_telegram.sh
 
-# Vérifier les logs
+# Vérification des logs
 tail -f /var/log/ftp_telegram.log
-```
-
-### Vérification des fichiers
-```bash
-# Vérifier les fichiers temporaires
-ls -l /var/tmp/FTP_TEMP
-
-# Vérifier l'historique des fichiers envoyés
-cat /var/tmp/FTP_FILES_SEEN.txt
 ```
 
 ### Test de la connexion FTP
 ```bash
-# Tester le script de vérification FTP
+# Exécution du script de test FTP
 sudo /usr/local/bin/ftp_video/test_ftp.sh
+```
+
+### Vérification des fichiers
+```bash
+# Vérification des fichiers temporaires
+ls -l /var/tmp/FTP_TEMP
+
+# Historique des envois
+cat /var/tmp/FTP_FILES_SEEN.txt
 ```
 
 ## Dépannage
 
 ### Problèmes courants
-1. **Erreur de connexion FTP** :
+
+1. **Erreurs de permissions** :
 ```bash
-# Tester la connexion FTP avec lftp
-lftp -u username,password ftp://your_host:port
-# Dans lftp, vous pouvez utiliser ces commandes :
-# ls        # Liste les fichiers
-# pwd       # Affiche le répertoire courant
-# exit      # Quitte lftp
+# Vérifier les permissions des dossiers et fichiers
+ls -la /var/log/ftp_telegram
+ls -la /usr/local/bin/ftp_video
+
+# Corriger les permissions si nécessaire
+sudo chown -R $USER:$USER /var/log/ftp_telegram/
+sudo chmod -R 755 /var/log/ftp_telegram/
+sudo chmod 664 /var/log/ftp_telegram/ftp_telegram.log
 ```
 
-2. **Erreur Telegram** :
+2. **Problèmes avec CRON** :
 ```bash
-# Tester l'API Telegram
-curl -s "https://api.telegram.org/botYOUR_BOT_TOKEN/getMe"
+# Vérifier que le crontab est configuré pour le bon utilisateur
+crontab -l
+
+# Vérifier les logs de cron
+sudo tail -f /var/log/syslog | grep CRON
 ```
 
-3. **Problèmes de permissions** :
-```bash
-# Vérifier les permissions
-ls -l /usr/local/bin/ftp_video/
-ls -l /etc/telegram/ftp_video/
-```
+3. **Erreurs FTP** :
+- Vérifier les paramètres dans ftp_config.cfg
+- Utiliser test_ftp.sh pour diagnostiquer
+- Vérifier les permissions des dossiers
 
-## Fichiers importants
-- Configuration : `/etc/telegram/ftp_video/ftp_config.cfg`
-- Scripts : `/usr/local/bin/ftp_video/`
-- Fichiers temporaires : `/var/tmp/FTP_TEMP`
-- État des fichiers : `/var/tmp/FTP_FILES_SEEN.txt`
-- Logs : `/var/log/ftp_telegram.log`
+4. **Erreurs Telegram** :
+- Vérifier le token et le chat ID
+- Consulter les logs pour les messages d'erreur
+- Vérifier la connexion internet
+
+5. **Problèmes de fichiers** :
+- Vérifier les permissions des dossiers
+- S'assurer que les fichiers .mkv sont lisibles
+- Vérifier l'espace disque disponible
+
+## Gestion des logs
+
+### Rotation automatique des logs
+- Les logs sont compressés après 1 jour
+- Conservation pendant 30 jours (configurable via MAX_LOG_DAYS dans cleanup.sh)
+- Nettoyage automatique via cleanup.sh
+
+### Nettoyage automatique
+Le script `cleanup.sh` effectue :
+- Nettoyage du fichier d'état (`FTP_FILES_SEEN.txt`)
+- Nettoyage du dossier temporaire (`FTP_TEMP`)
+- Compression des logs d'hier
+- Suppression des logs de plus de 30 jours
+- Nettoyage complet des fichiers .mkv sur le FTP
+
+### Consultation des logs
+```bash
+# Voir le log du jour
+tail -f /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
+
+# Voir un log compressé spécifique
+zcat /var/log/ftp_telegram/ftp_telegram_2024-03-20.log.gz
+
+# Lister tous les fichiers de log
+ls -l /var/log/ftp_telegram/
+```

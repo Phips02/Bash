@@ -3,18 +3,20 @@
 #A placer dans /usr/local/bin/ftp_video/telegram.functions.sh
 
 #Phips
-#Version : 2024.12.22 13:41
+#Version : 2024.12.22 20:10
 
 
-
-# Charger les identifiants depuis le fichier de configuration sécurisé
+# Charger la configuration depuis le fichier
 source /etc/telegram/ftp_video/ftp_config.cfg
+
+# Charger le logger
+source $LOGGER_PATH
 
 API="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}"
 
 # Ajouter une vérification du token
 if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
-    echo "Erreur: TELEGRAM_BOT_TOKEN non défini"
+    log_critical "telegram" "TELEGRAM_BOT_TOKEN non défini"
     exit 1
 fi
 
@@ -23,7 +25,7 @@ function validate_telegram_token() {
     local response
     response=$(curl -s "${API}/getMe")
     if ! echo "$response" | grep -q '"ok":true'; then
-        echo "Erreur: Token Telegram invalide"
+        log_error "telegram" "Token Telegram invalide"
         return 1
     fi
     return 0
@@ -47,14 +49,14 @@ function telegram_text_send() {
     fi
 
     if [ -z "$CHATID" ] || [ -z "$TEXT" ]; then
-        echo "Erreur : Le chat ID ou le texte est manquant."
+        log_error "telegram" "Le chat ID ou le texte est manquant"
         return 1
     fi
 
     # Ajout de la gestion des erreurs pour curl
     RESPONSE=$(curl -s -d "chat_id=${CHATID}&text=${TEXT}&parse_mode=${PARSE_MODE}" "${API}/${ENDPOINT}")
     if ! echo "$RESPONSE" | grep -q '"ok":true'; then
-        echo "Erreur lors de l'envoi du message: $RESPONSE"
+        log_error "telegram" "Erreur lors de l'envoi du message: $RESPONSE"
         return 1
     fi
 }
