@@ -1,5 +1,5 @@
 #Phips
-#Version : 2024.12.22 15:05
+#Version : 2024.03.23 15:33
 
 
 # Système d'envoi automatique de vidéos FTP vers Telegram
@@ -13,6 +13,11 @@ Ce système permet de récupérer automatiquement des fichiers vidéo (.mkv) dep
 Fichier de configuration centralisé situé dans `/etc/telegram/ftp_video/ftp_config.cfg`
 - Configuration du serveur FTP (host, port, credentials)
 - Configuration Telegram (bot token, chat ID)
+- Ajout de la configuration des chat IDs par client :
+  ```bash
+  CLIENT_CHAT_IDS_Client_1="-111111111"  # Le dossier doit avoir le nom du client (Client_1)
+  CLIENT_CHAT_IDS_Client_2="-222222222"  # Le dossier doit avoir le nom du client (Client_2)
+  ```
 - Configuration des chemins d'accès :
   - BASE_DIR : Répertoire de base pour les scripts
   - CONFIG_BASE_DIR : Répertoire de base pour la configuration
@@ -32,8 +37,26 @@ Script principal situé dans `${BASE_DIR}/ftp_telegram.sh`
 - Gestion des descriptions avec nom du dossier source et nom du fichier
 - Nettoyage automatique des fichiers temporaires
 - Utilisation de la fonction `print_log` pour une gestion cohérente des logs
+- Ajout du support multi-clients :
+  - Détection automatique du client basée sur le nom du dossier
+  - Utilisation du chat ID spécifique au client
+  - Fallback vers le chat ID par défaut si non configuré
+- Amélioration de la gestion des messages :
+  - Ajout du nom du client dans la description
+  - Format de description standardisé :
+    ```
+    Client: NomClient
+    nom_du_fichier.mkv
+    ```
 
-### 3. telegram.functions.sh
+### 3. ftp_monitor.sh
+Script de surveillance situé dans `${BASE_DIR}/ftp_monitor.sh`
+- Exécution du script principal toutes les 15 secondes
+- Redémarrage automatique au reboot
+- Gestion en arrière-plan
+- Utilisation des chemins définis dans ftp_config.cfg
+
+### 4. telegram.functions.sh
 Bibliothèque de fonctions Telegram dans `${BASE_DIR}/telegram.functions.sh`
 - Utilisation des chemins définis dans ftp_config.cfg
 - Validation du token Telegram avec système de retry
@@ -42,7 +65,7 @@ Bibliothèque de fonctions Telegram dans `${BASE_DIR}/telegram.functions.sh`
 - Test de connexion intégré
 - Utilisation de la fonction `print_log` pour une gestion cohérente des logs
 
-### 4. cleanup.sh
+### 5. cleanup.sh
 Script de nettoyage automatique dans `${BASE_DIR}/cleanup.sh`
 - Utilisation des chemins définis dans ftp_config.cfg
 - Nettoyage du fichier d'état des envois
@@ -54,7 +77,7 @@ Script de nettoyage automatique dans `${BASE_DIR}/cleanup.sh`
 - Capture et journalisation détaillée des erreurs FTP
 - Utilisation de la fonction `print_log` pour une gestion cohérente des logs
 
-### 5. phips_logger.sh
+### 6. phips_logger.sh
 Système de logging centralisé dans `${LOGGER_PATH}`
 - Support de plusieurs niveaux de log (DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL)
 - Rotation automatique des logs par date
@@ -100,6 +123,7 @@ sudo touch /etc/telegram/ftp_video/ftp_config.cfg
 sudo touch /usr/local/bin/ftp_video/ftp_telegram.sh
 sudo touch /usr/local/bin/ftp_video/telegram.functions.sh
 sudo touch /usr/local/bin/ftp_video/cleanup.sh
+sudo touch /usr/local/bin/ftp_video/ftp_monitor.sh
 sudo touch /usr/local/bin/phips_logger.sh
 
 # Rendre les scripts exécutables
@@ -117,6 +141,7 @@ sudo nano /etc/telegram/ftp_video/ftp_config.cfg
 sudo nano /usr/local/bin/ftp_video/ftp_telegram.sh
 sudo nano /usr/local/bin/ftp_video/telegram.functions.sh
 sudo nano /usr/local/bin/ftp_video/cleanup.sh
+sudo nano /usr/local/bin/ftp_video/ftp_monitor.sh
 sudo nano /usr/local/bin/phips_logger.sh
 ```
 
@@ -132,8 +157,28 @@ crontab -e
 # Pour le nettoyage quotidien à minuit
 0 0 * * * /usr/local/bin/ftp_video/cleanup.sh
 
+# Pour la surveillance toutes les 15 secondes
+*/15 * * * * /usr/local/bin/ftp_video/ftp_monitor.sh > /dev/null 2>&1 &
+
 # Vérifier que le crontab est bien configuré
 crontab -l
+```
+
+## Gestion du service
+
+### Démarrage manuel
+```bash
+/usr/local/bin/ftp_video/ftp_monitor.sh > /dev/null 2>&1 &
+```
+
+### Arrêt du service
+```bash
+pkill -f "ftp_monitor.sh"
+```
+
+### Vérification du statut
+```bash
+ps aux | grep "ftp_monitor.sh"
 ```
 
 ## Fichiers et dossiers importants
@@ -146,6 +191,7 @@ crontab -l
 ├── ftp_telegram.sh
 ├── telegram.functions.sh
 ├── cleanup.sh
+├── ftp_monitor.sh
 └── phips_logger.sh
 
 /var/tmp/
@@ -248,4 +294,28 @@ zcat /var/log/ftp_telegram/ftp_telegram_2024-03-20.log.gz
 
 # Lister tous les fichiers de log
 ls -l /var/log/ftp_telegram/
+```
+
+## Configuration des clients
+
+### Ajout d'un nouveau client
+1. Dans `ftp_config.cfg`, ajouter une nouvelle entrée :
+```bash
+CLIENT_CHAT_IDS_NomClient="-123456789"
+```
+
+2. Sur le serveur FTP, créer un dossier avec exactement le même nom que celui utilisé dans la configuration :
+```
+/Telegram/NomClient/
+```
+
+### Structure FTP recommandée
+```
+/Telegram/
+├── Client_1/
+│   └── video1.mkv
+├── Client_2/
+│   └── video2.mkv
+└── Client_3/
+    └── video3.mkv
 ```

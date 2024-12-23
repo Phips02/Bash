@@ -124,7 +124,7 @@ send_to_telegram() {
     
     # Préparer la description avec le dossier source et le nom du fichier
     local CAPTION="Client: ${SOURCE_DIR}
-Fichier: ${FILE_NAME}"
+${FILE_NAME}"
 
     while [ $retry_count -lt $max_retries ]; do
         print_log "info" "ftp_telegram" "Tentative d'envoi ($((retry_count+1))/$max_retries): ${FILE_NAME} vers chat ID: ${CHAT_ID}"
