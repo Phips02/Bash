@@ -3,7 +3,7 @@
 #A placer dans /usr/local/bin/ftp_video/telegram.functions.sh
 
 #Phips
-#Version : 2024.03.21 11:31
+#Version : 2024.03.21 15:10
 
 # Charger la configuration
 CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
@@ -117,8 +117,8 @@ function telegram_text_send() {
 # Fonction pour envoyer une vidéo via Telegram
 function telegram_video_send() {
     local VIDEO_FILE="$1"
-    local CHATID="$TELEGRAM_CHAT_ID"
     local CAPTION="$2"
+    local CHATID="${3:-$TELEGRAM_CHAT_ID}"  # Utilise le chat ID fourni ou celui par défaut
     local ENDPOINT="sendVideo"
     local RESPONSE
 
@@ -142,6 +142,6 @@ function telegram_video_send() {
         return 1
     fi
 
-    print_log "info" "telegram.functions" "Vidéo envoyée avec succès"
+    print_log "info" "telegram.functions" "Vidéo envoyée avec succès vers chat ID: ${CHATID}"
     return 0
 }

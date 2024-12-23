@@ -3,7 +3,7 @@
 #A placer dans /usr/local/bin/ftp_video/ftp_telegram.sh
 
 #Phips
-#Version : 2024.03.21 11:31
+#Version : 2024.03.21 15:10
 
 # Charger la configuration
 CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
@@ -103,23 +103,34 @@ trap 'rm -rf "$TEMP_DIR/*"' EXIT
 # Fonction pour envoyer une vidéo à Telegram
 send_to_telegram() {
     local FILE_PATH="$1"
-    local CHAT_ID="$2"
-    local BOT_TOKEN="$3"
     local SOURCE_DIR="$4"
     local max_retries=3
     local retry_count=0
     
     # Obtenir le nom du fichier
     local FILE_NAME=$(basename "$FILE_PATH")
+    
+    # Extraire le nom du dossier parent du FILE_PATH si SOURCE_DIR est vide
+    if [ -z "$SOURCE_DIR" ]; then
+        SOURCE_DIR=$(basename "$(dirname "$FILE_PATH")")
+        print_log "debug" "ftp_telegram" "SOURCE_DIR extrait du chemin: ${SOURCE_DIR}"
+    fi
+    
+    # Déterminer le chat ID approprié en fonction du dossier source
+    local VAR_NAME="CLIENT_CHAT_IDS_${SOURCE_DIR}"
+    local CHAT_ID="${!VAR_NAME:-$DEFAULT_TELEGRAM_CHAT_ID}"
+    
+    print_log "debug" "ftp_telegram" "Utilisation du chat ID: ${CHAT_ID} pour le client: ${SOURCE_DIR}"
+    
     # Préparer la description avec le dossier source et le nom du fichier
-    local CAPTION="$SOURCE_DIR
-$FILE_NAME"
+    local CAPTION="Client: ${SOURCE_DIR}
+Fichier: ${FILE_NAME}"
 
     while [ $retry_count -lt $max_retries ]; do
-        print_log "info" "ftp_telegram" "Tentative d'envoi ($((retry_count+1))/$max_retries): ${FILE_NAME}"
+        print_log "info" "ftp_telegram" "Tentative d'envoi ($((retry_count+1))/$max_retries): ${FILE_NAME} vers chat ID: ${CHAT_ID}"
         
-        if telegram_video_send "$FILE_PATH" "$CAPTION"; then
-            print_log "debug" "ftp_telegram" "Envoi Telegram réussi pour: ${FILE_NAME}"
+        if telegram_video_send "$FILE_PATH" "$CAPTION" "$CHAT_ID"; then
+            print_log "debug" "ftp_telegram" "Envoi Telegram réussi pour: ${FILE_NAME} vers chat ID: ${CHAT_ID}"
             return 0
         fi
         
@@ -225,7 +236,7 @@ EOF
         
         # Vérifier si le fichier a déjà été envoyé
         if ! grep -Fxq "$relative_path" $STATE_FILE; then
-            if send_to_telegram "$FILE" "$TELEGRAM_CHAT_ID" "$TELEGRAM_BOT_TOKEN" "$client_name"; then
+            if send_to_telegram "$FILE" "$client_name"; then
                 echo "$relative_path" >> $STATE_FILE
                 print_log "info" "ftp_telegram" "Fichier envoyé avec succès: $relative_path"
             fi
