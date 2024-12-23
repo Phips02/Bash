@@ -3,7 +3,7 @@
 #A placer dans /usr/local/bin/phips_logger.sh
 
 #Phips
-#Version : 2024.12.22 20:10
+#Version : 2024.03.21 11:31
 
 
 # Configuration du logger dans /etc/telegram/ftp_video/ftp_config.cfg

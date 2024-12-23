@@ -3,62 +3,85 @@
 #A placer dans /usr/local/bin/ftp_video/ftp_telegram.sh
 
 #Phips
-#Version : 2024.12.22 20:10
+#Version : 2024.03.21 11:31
 
-
-
-# Charger la configuration depuis le fichier
+# Charger la configuration
 CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
 
 # Vérifier si le fichier de configuration existe
 if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Erreur: Fichier de configuration non trouvé: $CONFIG_FILE"
+    echo "Fichier de configuration non trouvé: $CONFIG_FILE"
     exit 1
 fi
 
 # Charger la configuration
 source "$CONFIG_FILE"
 
-# Vérifier si LOGGER_PATH est défini
-if [ -z "$LOGGER_PATH" ]; then
-    echo "Erreur: LOGGER_PATH n'est pas défini dans la configuration"
-    exit 1
+# Vérifier les chemins essentiels
+for path_var in "BASE_DIR" "CONFIG_BASE_DIR" "LOG_DIR" "TEMP_DIR" "LOGGER_PATH" "TELEGRAM_FUNCTIONS" "STATE_FILE"; do
+    if [ -z "${!path_var}" ]; then
+        echo "Erreur: $path_var n'est pas défini dans la configuration"
+        exit 1
+    fi
+done
+
+# Créer les répertoires nécessaires s'ils n'existent pas
+for dir in "$LOG_DIR" "$TEMP_DIR" "$(dirname "$STATE_FILE")"; do
+    if [ ! -d "$dir" ]; then
+        mkdir -p "$dir" || {
+            echo "Impossible de créer le répertoire: $dir"
+            exit 1
+        }
+    fi
+done
+
+# Créer le fichier d'état s'il n'existe pas
+if [ ! -f "$STATE_FILE" ]; then
+    touch "$STATE_FILE" || {
+        echo "Impossible de créer le fichier d'état: $STATE_FILE"
+        exit 1
+    }
 fi
 
 # Vérifier si le fichier logger existe
 if [ ! -f "$LOGGER_PATH" ]; then
-    echo "Erreur: Logger non trouvé: $LOGGER_PATH"
+    echo "Logger non trouvé: $LOGGER_PATH"
     exit 1
 fi
 
 # Charger le logger
 source "$LOGGER_PATH"
 
+# Fonction utilitaire pour combiner echo et log
+print_log() {
+    local level="$1"
+    local component="$2"
+    local message="$3"
+    echo "$message"
+    "log_${level}" "$component" "$message"
+}
+
+# Charger les fonctions Telegram
+if [ ! -f "$TELEGRAM_FUNCTIONS" ]; then
+    print_log "critical" "ftp_telegram" "Fonctions Telegram non trouvées: $TELEGRAM_FUNCTIONS"
+    exit 1
+fi
+source "$TELEGRAM_FUNCTIONS"
+
 # Vérifier si les fonctions de logging sont disponibles
 if ! type log_info >/dev/null 2>&1; then
-    echo "Erreur: Les fonctions de logging ne sont pas correctement chargées"
+    print_log "error" "ftp_telegram" "Les fonctions de logging ne sont pas correctement chargées"
     exit 1
 fi
 
-# Test immédiat du logger
-log_info "ftp_telegram" "Démarrage du script"
+# Log Démarrage du script
+print_log "info" "ftp_telegram" "Démarrage du script"
 
-# Définir les répertoires et fichiers
-TEMP_DIR="/var/tmp/FTP_TEMP"
-STATE_FILE="/var/tmp/FTP_FILES_SEEN.txt"
-
-# Ajouter une vérification du fichier de configuration
-if [ ! -f "$CONFIG_FILE" ]; then
-    log_critical "ftp_telegram" "Fichier de configuration non trouvé: $CONFIG_FILE"
-    exit 1
-fi
-
-# Au début du script, après le chargement de la configuration
 # Vérification et création des dossiers nécessaires
 if [ ! -d "$TEMP_DIR" ]; then
-    log_info "ftp_telegram" "Création du répertoire temporaire: $TEMP_DIR"
+    print_log "info" "ftp_telegram" "Création du répertoire temporaire: $TEMP_DIR"
     mkdir -p "$TEMP_DIR" || {
-        log_critical "ftp_telegram" "Impossible de créer $TEMP_DIR"
+        print_log "critical" "ftp_telegram" "Impossible de créer $TEMP_DIR"
         exit 1
     }
 fi
@@ -66,28 +89,16 @@ fi
 # Ignorer les dossiers système
 IGNORE_DIRS=("@eaDir" "@tmp")
 
-# Ajouter une gestion d'erreur pour le répertoire temporaire
-if ! mkdir -p "$TEMP_DIR"; then
-    log_critical "ftp_telegram" "Impossible de créer le répertoire temporaire: $TEMP_DIR"
-    exit 1
-fi
-
-# Ajouter une vérification de l'existence des commandes requises
+# Vérifier l'existence des commandes requises
 for cmd in lftp curl; do
     if ! command -v $cmd &> /dev/null; then
-        log_critical "ftp_telegram" "$cmd n'est pas installé"
+        print_log "critical" "ftp_telegram" "$cmd n'est pas installé"
         exit 1
     fi
 done
 
 # Ajouter un nettoyage au début du script
 trap 'rm -rf "$TEMP_DIR/*"' EXIT
-
-# Au début du script
-if [ ! -f "$LOGGER_PATH" ]; then
-    echo "Logger non trouvé: $LOGGER_PATH"
-    exit 1
-fi
 
 # Fonction pour envoyer une vidéo à Telegram
 send_to_telegram() {
@@ -97,8 +108,6 @@ send_to_telegram() {
     local SOURCE_DIR="$4"
     local max_retries=3
     local retry_count=0
-    local curl_output
-    local http_code
     
     # Obtenir le nom du fichier
     local FILE_NAME=$(basename "$FILE_PATH")
@@ -107,31 +116,21 @@ send_to_telegram() {
 $FILE_NAME"
 
     while [ $retry_count -lt $max_retries ]; do
-        curl_output=$(mktemp)
+        print_log "info" "ftp_telegram" "Tentative d'envoi ($((retry_count+1))/$max_retries): ${FILE_NAME}"
         
-        http_code=$(curl -s -w "%{http_code}" -X POST \
-            "https://api.telegram.org/bot${BOT_TOKEN}/sendVideo" \
-            -F "chat_id=${CHAT_ID}" \
-            -F "video=@${FILE_PATH}" \
-            -F "caption=${CAPTION}" \
-            -F "parse_mode=HTML" \
-            -o "$curl_output")
-
-        if [ "$http_code" = "200" ]; then
-            log_info "ftp_telegram" "Fichier envoyé avec succès: ${CAPTION}"
-            rm -f "$curl_output"
+        if telegram_video_send "$FILE_PATH" "$CAPTION"; then
+            print_log "debug" "ftp_telegram" "Envoi Telegram réussi pour: ${FILE_NAME}"
             return 0
         fi
-
-        log_warning "ftp_telegram" "Tentative $((retry_count+1))/$max_retries échouée (HTTP $http_code)"
-        log_debug "ftp_telegram" "Réponse Telegram: $(cat "$curl_output")"
         
-        rm -f "$curl_output"
         ((retry_count++))
-        sleep 5
+        if [ $retry_count -lt $max_retries ]; then
+            print_log "info" "ftp_telegram" "Nouvelle tentative dans 5 secondes"
+            sleep 5
+        fi
     done
     
-    log_error "ftp_telegram" "Échec de l'envoi après $max_retries tentatives"
+    print_log "error" "ftp_telegram" "Échec de l'envoi après $max_retries tentatives: ${FILE_NAME}"
     return 1
 }
 
@@ -145,9 +144,9 @@ create_local_dir() {
     echo "$local_dir"
 }
 
-# Remplacer la fonction process_ftp par :
+# Fonction process_ftp
 process_ftp() {
-    log_info "ftp_telegram" "Démarrage du traitement FTP"
+    print_log "info" "ftp_telegram" "Démarrage du traitement FTP"
     local dirs_file=$(mktemp)
     local error_file=$(mktemp)
     local error_count=0
@@ -162,9 +161,9 @@ process_ftp() {
         
         local error_msg=$(cat "$error_file")
         if [ -n "$error_msg" ]; then
-            log_error "ftp_telegram" "Erreur FTP: $error_msg"
+            print_log "error" "ftp_telegram" "Erreur FTP: $error_msg"
         else
-            log_error "ftp_telegram" "Erreur FTP inconnue lors de la connexion"
+            print_log "error" "ftp_telegram" "Erreur FTP inconnue lors de la connexion"
         fi
         
         rm -f "$dirs_file" "$error_file"
@@ -173,20 +172,20 @@ process_ftp() {
 
     # Vérifier si le fichier de sortie est vide
     if [ ! -s "$dirs_file" ]; then
-        log_error "ftp_telegram" "Aucune donnée reçue du serveur FTP"
+        print_log "error" "ftp_telegram" "Aucune donnée reçue du serveur FTP"
         rm -f "$dirs_file" "$error_file"
         return 1
     fi
 
-    # Ensuite, traiter chaque dossier séparément
+    # Traiter chaque dossier séparément
     grep "^./.*:$" "$dirs_file" | sed 's/:$//' | while read dir; do
-        log_info "ftp_telegram" "Analyse du dossier: $dir"
+        print_log "info" "ftp_telegram" "Analyse du dossier: $dir"
         
         # Ignorer les dossiers système
         skip=0
         for ignore in "${IGNORE_DIRS[@]}"; do
             if [[ "$dir" == *"$ignore"* ]]; then
-                log_debug "ftp_telegram" "Dossier ignoré: $dir"
+                print_log "debug" "ftp_telegram" "Dossier ignoré: $dir"
                 skip=1
                 break
             fi
@@ -197,9 +196,9 @@ process_ftp() {
         fi
 
         if [ "$dir" != "." ]; then
-            log_info "ftp_telegram" "Traitement du dossier: $dir"
+            print_log "info" "ftp_telegram" "Traitement du dossier: $dir"
             mkdir -p "$TEMP_DIR/$dir" || {
-                log_error "ftp_telegram" "Impossible de créer le dossier $TEMP_DIR/$dir"
+                print_log "error" "ftp_telegram" "Impossible de créer le dossier $TEMP_DIR/$dir"
                 continue
             }
             
@@ -216,7 +215,7 @@ EOF
     done
 
     rm -f "$dirs_file" "$error_file"
-    log_info "ftp_telegram" "Fin du traitement FTP"
+    print_log "info" "ftp_telegram" "Fin du traitement FTP"
 
     # Traiter les fichiers téléchargés
     find "$TEMP_DIR" -type f -name "*.mkv" | while read FILE; do
@@ -228,9 +227,10 @@ EOF
         if ! grep -Fxq "$relative_path" $STATE_FILE; then
             if send_to_telegram "$FILE" "$TELEGRAM_CHAT_ID" "$TELEGRAM_BOT_TOKEN" "$client_name"; then
                 echo "$relative_path" >> $STATE_FILE
+                print_log "info" "ftp_telegram" "Fichier envoyé avec succès: $relative_path"
             fi
         else
-            log_info "ftp_telegram" "Fichier déjà envoyé : $relative_path"
+            print_log "info" "ftp_telegram" "Fichier déjà envoyé: $relative_path"
         fi
     done
 }

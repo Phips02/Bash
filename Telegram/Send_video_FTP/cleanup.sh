@@ -3,36 +3,55 @@
 #A placer dans /usr/local/bin/ftp_video/cleanup.sh
 
 #Phips
-#Version : 2024.12.22 20:10
-
-
-
+#Version : 2024.03.21 11:31
 
 # Charger la configuration
 CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
-source $CONFIG_FILE
 
-# Charger le logger
-source $LOGGER_PATH
+# Vérifier si le fichier de configuration existe
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Fichier de configuration non trouvé: $CONFIG_FILE"
+    exit 1
+fi
 
-# Fichiers et dossiers à nettoyer
-STATE_FILE="/var/tmp/FTP_FILES_SEEN.txt"
-TEMP_DIR="/var/tmp/FTP_TEMP"
-LOG_DIR="/var/log/ftp_telegram"
-MAX_LOG_DAYS=30  # Nombre de jours à conserver pour les logs
+# Charger la configuration
+source "$CONFIG_FILE"
 
-# Au début du script, après le chargement de la config
+# Vérifier les chemins essentiels
+for path_var in "BASE_DIR" "CONFIG_BASE_DIR" "LOG_DIR" "TEMP_DIR" "LOGGER_PATH" "STATE_FILE"; do
+    if [ -z "${!path_var}" ]; then
+        echo "Erreur: $path_var n'est pas défini dans la configuration"
+        exit 1
+    fi
+done
+
+# Vérifier si le fichier logger existe
 if [ ! -f "$LOGGER_PATH" ]; then
     echo "Logger non trouvé: $LOGGER_PATH"
     exit 1
 fi
+
+# Charger le logger
+source "$LOGGER_PATH"
+
+# Fonction utilitaire pour combiner echo et log
+print_log() {
+    local level="$1"
+    local component="$2"
+    local message="$3"
+    echo "$message"
+    "log_${level}" "$component" "$message"
+}
+
+# Configuration de la rétention des logs
+MAX_LOG_DAYS=30  # Nombre de jours à conserver pour les logs
 
 # Ajouter une fonction de vérification du logger
 verify_logger() {
     if ! type log_info &>/dev/null || \
        ! type log_error &>/dev/null || \
        ! type log_critical &>/dev/null; then
-        echo "Fonctions de logging non disponibles"
+        print_log "critical" "cleanup" "Fonctions de logging non disponibles"
         exit 1
     fi
 }
@@ -40,13 +59,15 @@ verify_logger() {
 # Après le source du logger
 verify_logger
 
+print_log "info" "cleanup" "Démarrage du script de nettoyage"
+
 # Fonction de nettoyage du fichier d'état
 cleanup_state_file() {
     if [ -f "$STATE_FILE" ]; then
-        log_info "cleanup" "Nettoyage du fichier d'état: $STATE_FILE"
+        print_log "info" "cleanup" "Nettoyage du fichier d'état: $STATE_FILE"
         : > "$STATE_FILE"  # Vide le fichier tout en le préservant
     else
-        log_warning "cleanup" "Fichier d'état non trouvé: $STATE_FILE"
+        print_log "warning" "cleanup" "Fichier d'état non trouvé: $STATE_FILE"
         touch "$STATE_FILE"
     fi
 }
@@ -54,10 +75,10 @@ cleanup_state_file() {
 # Fonction de nettoyage du dossier temporaire
 cleanup_temp_dir() {
     if [ -d "$TEMP_DIR" ]; then
-        log_info "cleanup" "Nettoyage du dossier temporaire: $TEMP_DIR"
+        print_log "info" "cleanup" "Nettoyage du dossier temporaire: $TEMP_DIR"
         rm -rf "${TEMP_DIR:?}"/*
     else
-        log_warning "cleanup" "Dossier temporaire non trouvé: $TEMP_DIR"
+        print_log "warning" "cleanup" "Dossier temporaire non trouvé: $TEMP_DIR"
         mkdir -p "$TEMP_DIR"
     fi
 }
@@ -65,19 +86,29 @@ cleanup_temp_dir() {
 # Fonction de gestion des logs
 manage_logs() {
     if [ -d "$LOG_DIR" ]; then
-        log_info "cleanup" "Gestion des fichiers de log dans: $LOG_DIR"
+        print_log "info" "cleanup" "Gestion des fichiers de log dans: $LOG_DIR"
         
-        # Compression des logs d'hier avec le bon format de nom
+        # Compression des logs d'hier
         find "$LOG_DIR" -name "ftp_telegram_*.log" -type f -dayold 1 | while read logfile; do
-            base_name=$(basename "$logfile" .log)
-            gzip -f "$logfile"
-            log_info "cleanup" "Compression du fichier: $logfile"
+            if [ -f "$logfile" ]; then
+                print_log "info" "cleanup" "Compression du fichier: $logfile"
+                gzip -f "$logfile"
+            fi
         done
         
-        # Suppression des logs plus vieux que MAX_LOG_DAYS
-        find "$LOG_DIR" -name "ftp_telegram_*.log.gz" -type f -mtime +$MAX_LOG_DAYS -delete
+        # Suppression des vieux logs
+        local deleted_count=0
+        while read -r old_log; do
+            if rm "$old_log"; then
+                ((deleted_count++))
+            fi
+        done < <(find "$LOG_DIR" -name "ftp_telegram_*.log.gz" -type f -mtime +$MAX_LOG_DAYS)
+        
+        if [ $deleted_count -gt 0 ]; then
+            print_log "info" "cleanup" "$deleted_count fichiers de log anciens supprimés"
+        fi
     else
-        log_warning "cleanup" "Dossier de logs non trouvé: $LOG_DIR"
+        print_log "warning" "cleanup" "Dossier de logs non trouvé: $LOG_DIR"
         mkdir -p "$LOG_DIR"
     fi
 }
@@ -85,18 +116,19 @@ manage_logs() {
 # Fonction de nettoyage des vidéos sur le FTP
 cleanup_ftp_videos() {
     local temp_script="/tmp/ftp_cleanup.txt"
+    local error_file="/tmp/ftp_error.txt"
     local exit_code=0
     
     if [ ! -w "/tmp" ]; then
-        log_critical "cleanup" "Impossible d'écrire dans /tmp"
+        print_log "critical" "cleanup" "Impossible d'écrire dans /tmp"
         return 1
     fi
 
-    log_info "cleanup" "Début du nettoyage FTP"
+    print_log "info" "cleanup" "Début du nettoyage FTP"
 
     # Vérification des paramètres FTP
     if [ -z "$FTP_HOST" ] || [ -z "$FTP_USER" ] || [ -z "$FTP_PASS" ] || [ -z "$FTP_DIR" ]; then
-        log_error "cleanup" "Paramètres FTP manquants"
+        print_log "error" "cleanup" "Paramètres FTP manquants"
         return 1
     fi
 
@@ -111,31 +143,29 @@ glob -a rm *
 quit
 EOF
 
-    # Exécution du script de nettoyage
-    log_info "cleanup" "Suppression des fichiers sur le FTP"
-    if ! lftp -f "$temp_script" 2> >(log_error "cleanup" "Erreur FTP: $(cat)"); then
+    # Exécution du script de nettoyage avec capture des erreurs
+    print_log "info" "cleanup" "Suppression des fichiers sur le FTP"
+    if ! lftp -f "$temp_script" 2>"$error_file"; then
         exit_code=$?
-        log_error "cleanup" "Échec du nettoyage FTP (code: ${exit_code})"
+        if [ -s "$error_file" ]; then
+            local error_msg=$(cat "$error_file")
+            print_log "error" "cleanup" "Erreur FTP: ${error_msg}"
+        else
+            print_log "error" "cleanup" "Erreur FTP inconnue (code: ${exit_code})"
+        fi
+    else
+        print_log "info" "cleanup" "Nettoyage FTP terminé avec succès"
     fi
 
-    rm -f "$temp_script"
+    # Nettoyage des fichiers temporaires
+    rm -f "$temp_script" "$error_file"
     return $exit_code
 }
 
-# Fonction pour obtenir le chemin du fichier de log avec la date
-get_log_file() {
-    local base_log_file="${LOG_FILE:-$DEFAULT_LOG_FILE}"
-    local log_dir=$(dirname "$base_log_file")
-    local log_name="ftp_telegram"
-    echo "${log_dir}/${log_name}_$(date +%Y-%m-%d).log"
-}
-
 # Exécution des fonctions de nettoyage
-log_info "cleanup" "Démarrage du processus de nettoyage"
-
 cleanup_temp_dir
 manage_logs
 cleanup_ftp_videos
 cleanup_state_file
 
-log_info "cleanup" "Processus de nettoyage terminé"
+print_log "info" "cleanup" "Processus de nettoyage terminé"

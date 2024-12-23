@@ -10,35 +10,58 @@ Ce système permet de récupérer automatiquement des fichiers vidéo (.mkv) dep
 ## Description des scripts
 
 ### 1. ftp_config.cfg
-Fichier de configuration situé dans `/etc/telegram/ftp_video/ftp_config.cfg`
+Fichier de configuration centralisé situé dans `/etc/telegram/ftp_video/ftp_config.cfg`
 - Configuration du serveur FTP (host, port, credentials)
 - Configuration Telegram (bot token, chat ID)
-- Configuration du logger (chemin et fichier de log)
+- Configuration des chemins d'accès :
+  - BASE_DIR : Répertoire de base pour les scripts
+  - CONFIG_BASE_DIR : Répertoire de base pour la configuration
+  - LOG_DIR : Répertoire des logs
+  - TEMP_DIR : Répertoire temporaire
+  - STATE_FILE : Fichier d'état
+  - TELEGRAM_FUNCTIONS : Chemin vers les fonctions Telegram
+  - LOGGER_PATH : Chemin vers le logger
 
 ### 2. ftp_telegram.sh
-Script principal situé dans `/usr/local/bin/ftp_video/ftp_telegram.sh`
+Script principal situé dans `${BASE_DIR}/ftp_telegram.sh`
+- Utilisation des chemins définis dans ftp_config.cfg
 - Vérification complète de la configuration et des dépendances
-- Gestion des erreurs améliorée
+- Gestion des erreurs améliorée avec logs détaillés
 - Traitement récursif des dossiers FTP avec exclusion des dossiers système (@eaDir, @tmp)
-- Système de retry pour l'envoi Telegram (3 tentatives)
+- Système de retry pour l'envoi Telegram (3 tentatives avec délai de 5 secondes)
 - Gestion des descriptions avec nom du dossier source et nom du fichier
 - Nettoyage automatique des fichiers temporaires
+- Utilisation de la fonction `print_log` pour une gestion cohérente des logs
 
 ### 3. telegram.functions.sh
-Bibliothèque de fonctions Telegram dans `/usr/local/bin/ftp_video/telegram.functions.sh`
-- Validation du token Telegram
-- Gestion des messages Telegram
-- Gestion des erreurs de communication
+Bibliothèque de fonctions Telegram dans `${BASE_DIR}/telegram.functions.sh`
+- Utilisation des chemins définis dans ftp_config.cfg
+- Validation du token Telegram avec système de retry
+- Gestion des messages Telegram avec support HTML
+- Gestion des erreurs de communication détaillée
+- Test de connexion intégré
+- Utilisation de la fonction `print_log` pour une gestion cohérente des logs
 
 ### 4. cleanup.sh
-Script de nettoyage automatique dans `/usr/local/bin/ftp_video/cleanup.sh`
+Script de nettoyage automatique dans `${BASE_DIR}/cleanup.sh`
+- Utilisation des chemins définis dans ftp_config.cfg
 - Nettoyage du fichier d'état des envois
 - Nettoyage du dossier temporaire
 - Gestion de la rotation des logs (compression après 1 jour)
 - Suppression des logs de plus de 30 jours
 - Nettoyage récursif des fichiers .mkv sur le FTP
 - Suppression des dossiers vides sur le FTP
+- Capture et journalisation détaillée des erreurs FTP
+- Utilisation de la fonction `print_log` pour une gestion cohérente des logs
 
+### 5. phips_logger.sh
+Système de logging centralisé dans `${LOGGER_PATH}`
+- Support de plusieurs niveaux de log (DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL)
+- Rotation automatique des logs par date
+- Gestion des erreurs de permissions
+- Fallback vers /tmp en cas de problème d'écriture
+- Horodatage précis avec millisecondes
+- Identification du device dans les logs
 
 ## Prérequis
 ```bash
@@ -188,7 +211,6 @@ sudo tail -f /var/log/syslog | grep CRON
 
 3. **Erreurs FTP** :
 - Vérifier les paramètres dans ftp_config.cfg
-- Utiliser test_ftp.sh pour diagnostiquer
 - Vérifier les permissions des dossiers
 
 4. **Erreurs Telegram** :
