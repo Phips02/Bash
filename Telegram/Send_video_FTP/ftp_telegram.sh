@@ -3,7 +3,7 @@
 #A placer dans /usr/local/bin/ftp_video/ftp_telegram.sh
 
 #Phips
-#Version : 2024.03.21 15:10
+#Version : 2024.12.23 20:15
 
 # Charger la configuration
 CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
@@ -74,7 +74,7 @@ if ! type log_info >/dev/null 2>&1; then
     exit 1
 fi
 
-# Log Démarrage du script
+# Test immédiat du logger
 print_log "info" "ftp_telegram" "Démarrage du script"
 
 # Vérification et création des dossiers nécessaires
@@ -103,34 +103,23 @@ trap 'rm -rf "$TEMP_DIR/*"' EXIT
 # Fonction pour envoyer une vidéo à Telegram
 send_to_telegram() {
     local FILE_PATH="$1"
+    local CHAT_ID="$2"
+    local BOT_TOKEN="$3"
     local SOURCE_DIR="$4"
     local max_retries=3
     local retry_count=0
     
     # Obtenir le nom du fichier
     local FILE_NAME=$(basename "$FILE_PATH")
-    
-    # Extraire le nom du dossier parent du FILE_PATH si SOURCE_DIR est vide
-    if [ -z "$SOURCE_DIR" ]; then
-        SOURCE_DIR=$(basename "$(dirname "$FILE_PATH")")
-        print_log "debug" "ftp_telegram" "SOURCE_DIR extrait du chemin: ${SOURCE_DIR}"
-    fi
-    
-    # Déterminer le chat ID approprié en fonction du dossier source
-    local VAR_NAME="CLIENT_CHAT_IDS_${SOURCE_DIR}"
-    local CHAT_ID="${!VAR_NAME:-$DEFAULT_TELEGRAM_CHAT_ID}"
-    
-    print_log "debug" "ftp_telegram" "Utilisation du chat ID: ${CHAT_ID} pour le client: ${SOURCE_DIR}"
-    
     # Préparer la description avec le dossier source et le nom du fichier
-    local CAPTION="Client: ${SOURCE_DIR}
-${FILE_NAME}"
+    local CAPTION="$SOURCE_DIR
+$FILE_NAME"
 
     while [ $retry_count -lt $max_retries ]; do
-        print_log "info" "ftp_telegram" "Tentative d'envoi ($((retry_count+1))/$max_retries): ${FILE_NAME} vers chat ID: ${CHAT_ID}"
+        print_log "info" "ftp_telegram" "Tentative d'envoi ($((retry_count+1))/$max_retries): ${FILE_NAME}"
         
         if telegram_video_send "$FILE_PATH" "$CAPTION" "$CHAT_ID"; then
-            print_log "debug" "ftp_telegram" "Envoi Telegram réussi pour: ${FILE_NAME} vers chat ID: ${CHAT_ID}"
+            print_log "info" "ftp_telegram" "Fichier envoyé avec succès: ${FILE_NAME}"
             return 0
         fi
         
@@ -155,93 +144,67 @@ create_local_dir() {
     echo "$local_dir"
 }
 
+# Fonction pour obtenir le chat ID spécifique au client
+get_client_chat_id() {
+    local client_name="$1"
+    local var_name="CLIENT_CHAT_IDS_${client_name}"
+    local chat_id="${!var_name}"
+    
+    if [ -n "$chat_id" ]; then
+        echo "$chat_id"
+    else
+        echo "$DEFAULT_TELEGRAM_CHAT_ID"
+    fi
+}
+
 # Fonction process_ftp
 process_ftp() {
     print_log "info" "ftp_telegram" "Démarrage du traitement FTP"
-    local dirs_file=$(mktemp)
     local error_file=$(mktemp)
-    local error_count=0
     
     # Nettoyer le dossier temporaire avant de commencer
     rm -rf "${TEMP_DIR:?}"/*
     
-    # Récupération de la liste des dossiers avec capture détaillée des erreurs
-    if ! lftp -u "$FTP_USER,$FTP_PASS" "$FTP_HOST:$FTP_PORT" \
-        -e "set ssl:verify-certificate no; cd \"$FTP_DIR\"; ls -R; quit" \
-        > "$dirs_file" 2>"$error_file"; then
-        
-        local error_msg=$(cat "$error_file")
-        if [ -n "$error_msg" ]; then
-            print_log "error" "ftp_telegram" "Erreur FTP: $error_msg"
-        else
-            print_log "error" "ftp_telegram" "Erreur FTP inconnue lors de la connexion"
-        fi
-        
-        rm -f "$dirs_file" "$error_file"
-        return 1
-    fi
+    # Créer le script FTP
+    local ftp_script=$(mktemp)
+    cat > "$ftp_script" <<EOF
+open -u "$FTP_USER","$FTP_PASS" "$FTP_HOST:$FTP_PORT"
+set ssl:verify-certificate no
+set xfer:clobber yes
+cd "$FTP_DIR"
 
-    # Vérifier si le fichier de sortie est vide
-    if [ ! -s "$dirs_file" ]; then
-        print_log "error" "ftp_telegram" "Aucune donnée reçue du serveur FTP"
-        rm -f "$dirs_file" "$error_file"
-        return 1
-    fi
+# Obtenir la liste des dossiers et les traiter
+mirror --only-newer -i "\.mkv$" --exclude "@eaDir/" --exclude "@tmp/" . "$TEMP_DIR"
 
-    # Traiter chaque dossier séparément
-    grep "^./.*:$" "$dirs_file" | sed 's/:$//' | while read dir; do
-        print_log "info" "ftp_telegram" "Analyse du dossier: $dir"
-        
-        # Ignorer les dossiers système
-        skip=0
-        for ignore in "${IGNORE_DIRS[@]}"; do
-            if [[ "$dir" == *"$ignore"* ]]; then
-                print_log "debug" "ftp_telegram" "Dossier ignoré: $dir"
-                skip=1
-                break
-            fi
-        done
-        
-        if [ "$skip" -eq 1 ]; then
-            continue
-        fi
-
-        if [ "$dir" != "." ]; then
-            print_log "info" "ftp_telegram" "Traitement du dossier: $dir"
-            mkdir -p "$TEMP_DIR/$dir" || {
-                print_log "error" "ftp_telegram" "Impossible de créer le dossier $TEMP_DIR/$dir"
-                continue
-            }
-            
-            # Télécharger les fichiers du dossier avec l'option set xfer:clobber
-            lftp -u $FTP_USER,$FTP_PASS $FTP_HOST:$FTP_PORT <<EOF
-            set ssl:verify-certificate no
-            set xfer:clobber yes
-            cd "$FTP_DIR/$dir"
-            lcd "$TEMP_DIR/$dir"
-            mget *.mkv
-            quit
+quit
 EOF
-        fi
-    done
 
-    rm -f "$dirs_file" "$error_file"
+    # Exécuter le script FTP
+    print_log "info" "ftp_telegram" "Démarrage du téléchargement des fichiers"
+    if ! lftp -f "$ftp_script" 2>"$error_file"; then
+        print_log "error" "ftp_telegram" "Erreur lors du téléchargement des fichiers"
+        cat "$error_file" | while read line; do
+            print_log "error" "ftp_telegram" "$line"
+        done
+    fi
+
+    # Nettoyage des fichiers temporaires
+    rm -f "$error_file" "$ftp_script"
     print_log "info" "ftp_telegram" "Fin du traitement FTP"
 
-    # Traiter les fichiers téléchargés
+    # Traitement des fichiers téléchargés
     find "$TEMP_DIR" -type f -name "*.mkv" | while read FILE; do
-        # Extraire le nom du client depuis le chemin relatif
         relative_path=${FILE#$TEMP_DIR/}
         client_name=$(dirname "$relative_path")
+        client_chat_id=$(get_client_chat_id "$client_name")
         
-        # Vérifier si le fichier a déjà été envoyé
         if ! grep -Fxq "$relative_path" $STATE_FILE; then
-            if send_to_telegram "$FILE" "$client_name"; then
+            if send_to_telegram "$FILE" "$client_chat_id" "$TELEGRAM_BOT_TOKEN" "$client_name"; then
                 echo "$relative_path" >> $STATE_FILE
-                print_log "info" "ftp_telegram" "Fichier envoyé avec succès: $relative_path"
+                print_log "info" "ftp_telegram" "Fichier envoyé avec succès à $client_name (Chat ID: $client_chat_id): $relative_path"
             fi
         else
-            print_log "info" "ftp_telegram" "Fichier déjà envoyé: $relative_path"
+            print_log "info" "ftp_telegram" "Fichier déjà envoyé : $relative_path"
         fi
     done
 }
