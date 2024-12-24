@@ -14,7 +14,8 @@
 ├── ftp_telegram.sh             # Script principal
 ├── telegram.functions.sh       # Fonctions Telegram
 ├── cleanup.sh                  # Script de maintenance
-└── ftp_monitor.sh              # Script de surveillance
+├── check_and_start.sh         # Script de vérification du moniteur
+└── ftp_monitor.sh             # Script de surveillance
 
 /var/tmp/
 ├── FTP_TEMP/                   # Fichiers temporaires
@@ -178,7 +179,7 @@ sudo pkill -f "ftp_monitor.sh"
 source /usr/local/bin/ftp_video/phips_logger.sh
 print_log "info" "test" "Test du système"
 tail -n 20 /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
-
+```
 
 ### 9. Mise à jour depuis GitHub
 ```bash
