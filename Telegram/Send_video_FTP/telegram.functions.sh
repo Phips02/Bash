@@ -34,15 +34,6 @@ fi
 # Charger le logger
 source "$LOGGER_PATH"
 
-# Fonction utilitaire pour combiner echo et log
-print_log() {
-    local level="$1"
-    local component="$2"
-    local message="$3"
-    echo "$message"
-    "log_${level}" "$component" "$message"
-}
-
 API="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}"
 
 # Ajouter une vérification du token
@@ -125,7 +116,7 @@ function telegram_text_send() {
     fi
 
     if [ -z "$CHATID" ] || [ -z "$TEXT" ]; then
-        log_error "telegram.functions" "Le chat ID ou le texte est manquant"
+        print_log "error" "telegram.functions" "Le chat ID ou le texte est manquant"
         return 1
     fi
 
@@ -137,11 +128,11 @@ function telegram_text_send() {
     # Ajout de la gestion des erreurs pour curl
     RESPONSE=$(curl -s -d "chat_id=${CHATID}&text=${TEXT}&parse_mode=${PARSE_MODE}" "${API}/${ENDPOINT}")
     if ! echo "$RESPONSE" | grep -q '"ok":true'; then
-        log_error "telegram.functions" "Erreur lors de l'envoi du message: $RESPONSE"
+        print_log "error" "telegram.functions" "Erreur lors de l'envoi du message: $RESPONSE"
         return 1
     fi
     
-    log_info "telegram.functions" "Message envoyé avec succès"
+    print_log "info" "telegram.functions" "Message envoyé avec succès"
     return 0
 }
 
@@ -154,12 +145,12 @@ function telegram_video_send() {
     local RESPONSE
 
     if [ ! -f "$VIDEO_FILE" ]; then
-        log_error "telegram.functions" "Fichier vidéo non trouvé: $VIDEO_FILE"
+        print_log "error" "telegram.functions" "Fichier vidéo non trouvé: $VIDEO_FILE"
         return 1
     fi
 
     if [ -z "$CHATID" ]; then
-        log_error "telegram.functions" "Chat ID manquant"
+        print_log "error" "telegram.functions" "Chat ID manquant"
         return 1
     fi
 
@@ -173,10 +164,10 @@ function telegram_video_send() {
                       "${API}/${ENDPOINT}")
 
     if ! echo "$RESPONSE" | grep -q '"ok":true'; then
-        log_error "telegram.functions" "Erreur lors de l'envoi de la vidéo: $RESPONSE"
+        print_log "error" "telegram.functions" "Erreur lors de l'envoi de la vidéo: $RESPONSE"
         return 1
     fi
 
-    log_info "telegram.functions" "Vidéo envoyée avec succès vers chat ID: ${CHATID}"
+    print_log "info" "telegram.functions" "Vidéo envoyée avec succès vers chat ID: ${CHATID}"
     return 0
 }

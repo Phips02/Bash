@@ -23,7 +23,7 @@ source "$LOGGER_PATH"
 # Boucle infinie avec pause de 15 secondes
 while true; do
     # Exécuter le script principal
-    log_info "monitor" "Exécution du script principal"
+    print_log "info" "monitor" "Exécution du script principal"
     /usr/local/bin/ftp_video/ftp_telegram.sh
     
     # Attendre 15 secondes

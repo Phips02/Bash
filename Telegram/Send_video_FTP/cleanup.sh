@@ -28,15 +28,6 @@ done
 # Charger le logger
 source "$LOGGER_PATH"
 
-# Fonction utilitaire pour combiner echo et log
-print_log() {
-    local level="$1"
-    local component="$2"
-    local message="$3"
-    echo "$message"
-    "log_${level}" "$component" "$message"
-}
-
 print_log "info" "cleanup" "Démarrage du script de nettoyage"
 
 # Fonction de nettoyage du dossier temporaire

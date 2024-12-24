@@ -64,15 +64,6 @@ if ! declare -f telegram_video_send >/dev/null; then
     exit 1
 fi
 
-# Fonction utilitaire pour combiner echo et log
-print_log() {
-    local level="$1"
-    local component="$2"
-    local message="$3"
-    echo "$message"
-    "log_${level}" "$component" "$message"
-}
-
 # Test immédiat du logger
 print_log "info" "ftp_telegram" "Démarrage du script"
 

@@ -58,9 +58,18 @@ log() {
     echo "$log_entry" >> "/tmp/ftp_telegram_$(date +%Y-%m-%d).log"
 }
 
-# Fonctions de niveau de log
+# Fonctions de niveau de log avec le nouveau format standard
 log_debug()   { log "DEBUG"    "$1" "$2"; }
 log_info()    { log "INFO"     "$1" "$2"; }
 log_warning() { log "WARNING"  "$1" "$2"; }
 log_error()   { log "ERROR"    "$1" "$2"; }
 log_critical(){ log "CRITICAL" "$1" "$2"; }
+
+# Fonction utilitaire pour combiner echo et log (format standard)
+print_log() {
+    local level="$1"
+    local component="$2"
+    local message="$3"
+    echo "$message"
+    "log_${level}" "$component" "$message"
+}
