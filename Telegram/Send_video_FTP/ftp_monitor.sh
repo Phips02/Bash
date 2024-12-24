@@ -3,7 +3,7 @@
 #A placer dans /usr/local/bin/ftp_video/ftp_monitor.sh
 
 #Phips
-#Version : 2024.03.23 15:26
+#Version : 2024.03.24 09:35
 
 # Charger la configuration
 CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
@@ -17,9 +17,13 @@ fi
 # Charger la configuration
 source "$CONFIG_FILE"
 
+# Charger le logger
+source "$LOGGER_PATH"
+
 # Boucle infinie avec pause de 15 secondes
 while true; do
     # Exécuter le script principal
+    log_info "monitor" "Exécution du script principal"
     /usr/local/bin/ftp_video/ftp_telegram.sh
     
     # Attendre 15 secondes
