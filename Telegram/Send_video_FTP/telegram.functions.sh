@@ -3,7 +3,7 @@
 #A placer dans /usr/local/bin/ftp_video/telegram.functions.sh
 
 #Phips
-#Version : 2024.03.21 15:10
+#Version : 2024.12.24 10:05
 
 # Charger la configuration
 CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
@@ -87,12 +87,35 @@ function test_telegram_send() {
     fi
 }
 
+# Fonction pour échapper les caractères spéciaux HTML
+escape_html() {
+    local text="$1"
+    text="${text//&/&amp;}"
+    text="${text//</&lt;}"
+    text="${text//>/&gt;}"
+    echo "$text"
+}
+
+# Fonction pour formater le texte en HTML
+format_html() {
+    local text="$1"
+    local format="$2"
+    
+    case "$format" in
+        "bold")      echo "<b>$(escape_html "$text")</b>" ;;
+        "italic")    echo "<i>$(escape_html "$text")</i>" ;;
+        "underline") echo "<u>$(escape_html "$text")</u>" ;;
+        "code")      echo "<code>$(escape_html "$text")</code>" ;;
+        "pre")       echo "<pre>$(escape_html "$text")</pre>" ;;
+        *)           echo "$(escape_html "$text")" ;;
+    esac
+}
+
 # Fonction pour envoyer un message via Telegram
 function telegram_text_send() {
-    local API="$API"
-    local CHATID="$TELEGRAM_CHAT_ID"
     local PARSE_MODE="$1"
     local TEXT="$2"
+    local CHATID="${3:-$TELEGRAM_CHAT_ID}"  # Utilise le chat ID fourni ou celui par défaut
     local ENDPOINT="sendMessage"
     local RESPONSE
 
@@ -102,46 +125,58 @@ function telegram_text_send() {
     fi
 
     if [ -z "$CHATID" ] || [ -z "$TEXT" ]; then
-        print_log "error" "telegram.functions" "Le chat ID ou le texte est manquant"
+        log_error "telegram.functions" "Le chat ID ou le texte est manquant"
         return 1
+    fi
+
+    # Échapper le texte si mode HTML
+    if [ "$PARSE_MODE" = "HTML" ]; then
+        TEXT="$(escape_html "$TEXT")"
     fi
 
     # Ajout de la gestion des erreurs pour curl
     RESPONSE=$(curl -s -d "chat_id=${CHATID}&text=${TEXT}&parse_mode=${PARSE_MODE}" "${API}/${ENDPOINT}")
     if ! echo "$RESPONSE" | grep -q '"ok":true'; then
-        print_log "error" "telegram.functions" "Erreur lors de l'envoi du message: $RESPONSE"
+        log_error "telegram.functions" "Erreur lors de l'envoi du message: $RESPONSE"
         return 1
     fi
+    
+    log_info "telegram.functions" "Message envoyé avec succès"
+    return 0
 }
 
 # Fonction pour envoyer une vidéo via Telegram
 function telegram_video_send() {
     local VIDEO_FILE="$1"
     local CAPTION="$2"
-    local CHATID="${3:-$TELEGRAM_CHAT_ID}"  # Utilise le chat ID fourni ou celui par défaut
+    local CHATID="${3:-$TELEGRAM_CHAT_ID}"
     local ENDPOINT="sendVideo"
     local RESPONSE
 
     if [ ! -f "$VIDEO_FILE" ]; then
-        print_log "error" "telegram.functions" "Fichier vidéo non trouvé: $VIDEO_FILE"
+        log_error "telegram.functions" "Fichier vidéo non trouvé: $VIDEO_FILE"
         return 1
     fi
 
     if [ -z "$CHATID" ]; then
-        print_log "error" "telegram.functions" "Chat ID manquant"
+        log_error "telegram.functions" "Chat ID manquant"
         return 1
     fi
+
+    # Échapper la légende pour HTML
+    CAPTION="$(escape_html "$CAPTION")"
 
     RESPONSE=$(curl -s -F "chat_id=${CHATID}" \
                       -F "video=@${VIDEO_FILE}" \
                       -F "caption=${CAPTION}" \
+                      -F "parse_mode=HTML" \
                       "${API}/${ENDPOINT}")
 
     if ! echo "$RESPONSE" | grep -q '"ok":true'; then
-        print_log "error" "telegram.functions" "Erreur lors de l'envoi de la vidéo: $RESPONSE"
+        log_error "telegram.functions" "Erreur lors de l'envoi de la vidéo: $RESPONSE"
         return 1
     fi
 
-    print_log "info" "telegram.functions" "Vidéo envoyée avec succès vers chat ID: ${CHATID}"
+    log_info "telegram.functions" "Vidéo envoyée avec succès vers chat ID: ${CHATID}"
     return 0
 }

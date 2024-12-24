@@ -3,7 +3,7 @@
 #A placer dans /usr/local/bin/ftp_video/ftp_telegram.sh
 
 #Phips
-#Version : 2024.12.23 20:15
+#Version : 2024.12.24 10:05
 
 # Charger la configuration
 CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
@@ -20,7 +20,7 @@ source "$CONFIG_FILE"
 # Vérifier les chemins essentiels
 for path_var in "BASE_DIR" "CONFIG_BASE_DIR" "LOG_DIR" "TEMP_DIR" "LOGGER_PATH" "TELEGRAM_FUNCTIONS" "STATE_FILE"; do
     if [ -z "${!path_var}" ]; then
-        echo "Erreur: $path_var n'est pas défini dans la configuration"
+        print_log "critical" "ftp_telegram" "$path_var n'est pas défini dans la configuration"
         exit 1
     fi
 done
@@ -29,7 +29,7 @@ done
 for dir in "$LOG_DIR" "$TEMP_DIR" "$(dirname "$STATE_FILE")"; do
     if [ ! -d "$dir" ]; then
         mkdir -p "$dir" || {
-            echo "Impossible de créer le répertoire: $dir"
+            print_log "critical" "ftp_telegram" "Impossible de créer le répertoire: $dir"
             exit 1
         }
     fi
@@ -51,6 +51,18 @@ fi
 
 # Charger le logger
 source "$LOGGER_PATH"
+# Vérification immédiate du logger
+if ! declare -f log_info >/dev/null; then
+    echo "ERREUR: Logger non chargé correctement"
+    exit 1
+fi
+
+source "$TELEGRAM_FUNCTIONS"
+# Vérification immédiate des fonctions Telegram
+if ! declare -f telegram_video_send >/dev/null; then
+    print_log "critical" "ftp_telegram" "Fonctions Telegram non chargées"
+    exit 1
+fi
 
 # Fonction utilitaire pour combiner echo et log
 print_log() {
@@ -60,19 +72,6 @@ print_log() {
     echo "$message"
     "log_${level}" "$component" "$message"
 }
-
-# Charger les fonctions Telegram
-if [ ! -f "$TELEGRAM_FUNCTIONS" ]; then
-    print_log "critical" "ftp_telegram" "Fonctions Telegram non trouvées: $TELEGRAM_FUNCTIONS"
-    exit 1
-fi
-source "$TELEGRAM_FUNCTIONS"
-
-# Vérifier si les fonctions de logging sont disponibles
-if ! type log_info >/dev/null 2>&1; then
-    print_log "error" "ftp_telegram" "Les fonctions de logging ne sont pas correctement chargées"
-    exit 1
-fi
 
 # Test immédiat du logger
 print_log "info" "ftp_telegram" "Démarrage du script"
@@ -162,30 +161,48 @@ process_ftp() {
     print_log "info" "ftp_telegram" "Démarrage du traitement FTP"
     local error_file=$(mktemp)
     
+    # Vérifier et créer le TEMP_DIR avec les bonnes permissions
+    if [ ! -d "$TEMP_DIR" ]; then
+        print_log "info" "ftp_telegram" "Création du répertoire temporaire: $TEMP_DIR"
+        mkdir -p "$TEMP_DIR" || {
+            print_log "critical" "ftp_telegram" "Impossible de créer $TEMP_DIR"
+            return 1
+        }
+        # Ajouter les bonnes permissions
+        chmod 755 "$TEMP_DIR"
+    fi
+    
     # Nettoyer le dossier temporaire avant de commencer
     rm -rf "${TEMP_DIR:?}"/*
     
-    # Créer le script FTP
+    # Créer le script FTP avec des options supplémentaires
     local ftp_script=$(mktemp)
     cat > "$ftp_script" <<EOF
 open -u "$FTP_USER","$FTP_PASS" "$FTP_HOST:$FTP_PORT"
 set ssl:verify-certificate no
 set xfer:clobber yes
+set net:max-retries 3
+set net:timeout 10
+set net:reconnect-interval-base 5
 cd "$FTP_DIR"
 
 # Obtenir la liste des dossiers et les traiter
-mirror --only-newer -i "\.mkv$" --exclude "@eaDir/" --exclude "@tmp/" . "$TEMP_DIR"
+mirror --only-newer -i "\.mkv$" --exclude "@eaDir/" --exclude "@tmp/" --parallel=1 --use-cache . "$TEMP_DIR"
 
 quit
 EOF
 
-    # Exécuter le script FTP
+    # Exécuter le script FTP avec vérification du statut
     print_log "info" "ftp_telegram" "Démarrage du téléchargement des fichiers"
     if ! lftp -f "$ftp_script" 2>"$error_file"; then
-        print_log "error" "ftp_telegram" "Erreur lors du téléchargement des fichiers"
-        cat "$error_file" | while read line; do
-            print_log "error" "ftp_telegram" "$line"
-        done
+        if grep -q "No such file or directory" "$error_file"; then
+            print_log "warning" "ftp_telegram" "Aucun nouveau fichier à télécharger"
+        else
+            print_log "error" "ftp_telegram" "Erreur lors du téléchargement des fichiers"
+            cat "$error_file" | while read line; do
+                print_log "error" "ftp_telegram" "$line"
+            done
+        fi
     fi
 
     # Nettoyage des fichiers temporaires
