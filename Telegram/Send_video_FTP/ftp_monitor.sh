@@ -26,11 +26,16 @@ if ! declare -f print_log >/dev/null; then
     exit 1
 fi
 
+# Gestion du signal d'arrêt
+trap 'print_log "info" "monitor" "Arrêt du moniteur"; exit 0' SIGTERM SIGINT
+
 # Boucle infinie avec pause de 15 secondes
 while true; do
     # Exécuter le script principal
     print_log "info" "monitor" "Exécution du script principal"
-    /usr/local/bin/ftp_video/ftp_telegram.sh
+    if ! /usr/local/bin/ftp_video/ftp_telegram.sh; then
+        print_log "error" "monitor" "Erreur lors de l'exécution du script principal"
+    fi
     
     # Attendre 15 secondes
     sleep 15
