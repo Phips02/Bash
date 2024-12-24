@@ -10,17 +10,17 @@
 └── ftp_config.cfg              # Configuration centralisée
 
 /usr/local/bin/ftp_video/
-├── phips_logger.sh            # Système de logging
-├── ftp_telegram.sh           # Script principal
-├── telegram.functions.sh     # Fonctions Telegram
-├── cleanup.sh               # Script de maintenance
-└── ftp_monitor.sh          # Script de surveillance
+├── phips_logger.sh             # Système de logging
+├── ftp_telegram.sh             # Script principal
+├── telegram.functions.sh       # Fonctions Telegram
+├── cleanup.sh                  # Script de maintenance
+└── ftp_monitor.sh              # Script de surveillance
 
 /var/tmp/
-├── FTP_TEMP/               # Fichiers temporaires
-└── FTP_FILES_SEEN.txt      # Cache des fichiers traités
+├── FTP_TEMP/                   # Fichiers temporaires
+└── FTP_FILES_SEEN.txt          # Cache des fichiers traités
 
-/var/log/ftp_telegram/      # Logs quotidiens
+/var/log/ftp_telegram/          # Logs quotidiens
 ```
 
 ## Déploiement depuis GitHub
