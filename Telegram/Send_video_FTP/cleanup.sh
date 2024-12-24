@@ -3,7 +3,7 @@
 #A placer dans /usr/local/bin/ftp_video/cleanup.sh
 
 #Phips
-#Version : 2024.03.24 10:50
+#Version : 2024.03.24 11:35
 
 # Charger la configuration
 CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
@@ -24,6 +24,9 @@ for path_var in "BASE_DIR" "CONFIG_BASE_DIR" "LOG_DIR" "TEMP_DIR" "LOGGER_PATH" 
         exit 1
     fi
 done
+
+# Charger le logger
+source "$LOGGER_PATH"
 
 # Vérification immédiate du logger
 if ! declare -f print_log >/dev/null; then
