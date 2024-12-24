@@ -3,7 +3,7 @@
 # A placer dans /usr/local/bin/ftp_video/phips_logger.sh
 
 # Phips
-# Version : 2024.03.24 09:45
+# Version : 2024.03.24 10:50
 
 # Obtenir le nom de l'hôte pour l'identification du device
 HOSTNAME=$(hostname)
@@ -38,13 +38,16 @@ init_log_file() {
 }
 
 # Fonction principale de logging
-log() {
+print_log() {
     local level="$1"
     local component="$2"
     local message="$3"
     local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     local log_file=$(get_log_file)
     local log_entry="${timestamp} [${level}] [${component}] [${HOSTNAME}] ${message}"
+    
+    # Afficher le message dans la console
+    echo "$message"
     
     # Initialiser le fichier de log
     if ! init_log_file "$log_file"; then
@@ -56,20 +59,4 @@ log() {
     # Écrire dans le log
     echo "$log_entry" >> "$log_file" 2>/dev/null || \
     echo "$log_entry" >> "/tmp/ftp_telegram_$(date +%Y-%m-%d).log"
-}
-
-# Fonctions de niveau de log avec le nouveau format standard
-log_debug()   { log "DEBUG"    "$1" "$2"; }
-log_info()    { log "INFO"     "$1" "$2"; }
-log_warning() { log "WARNING"  "$1" "$2"; }
-log_error()   { log "ERROR"    "$1" "$2"; }
-log_critical(){ log "CRITICAL" "$1" "$2"; }
-
-# Fonction utilitaire pour combiner echo et log (format standard)
-print_log() {
-    local level="$1"
-    local component="$2"
-    local message="$3"
-    echo "$message"
-    "log_${level}" "$component" "$message"
 }

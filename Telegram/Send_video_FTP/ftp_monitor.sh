@@ -3,7 +3,7 @@
 #A placer dans /usr/local/bin/ftp_video/ftp_monitor.sh
 
 #Phips
-#Version : 2024.03.24 09:35
+#Version : 2024.03.24 10:50
 
 # Charger la configuration
 CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
@@ -19,6 +19,12 @@ source "$CONFIG_FILE"
 
 # Charger le logger
 source "$LOGGER_PATH"
+
+# Vérification immédiate du logger
+if ! declare -f print_log >/dev/null; then
+    echo "ERREUR: Logger non chargé correctement"
+    exit 1
+fi
 
 # Boucle infinie avec pause de 15 secondes
 while true; do

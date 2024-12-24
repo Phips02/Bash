@@ -3,7 +3,7 @@
 #A placer dans /usr/local/bin/ftp_video/telegram.functions.sh
 
 #Phips
-#Version : 2024.12.24 10:05
+#Version : 2024.12.24 10:50
 
 # Charger la configuration
 CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
@@ -35,6 +35,12 @@ fi
 source "$LOGGER_PATH"
 
 API="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}"
+
+# Vérification immédiate du logger
+if ! declare -f print_log >/dev/null; then
+    echo "ERREUR: Logger non chargé correctement"
+    exit 1
+fi
 
 # Ajouter une vérification du token
 if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
