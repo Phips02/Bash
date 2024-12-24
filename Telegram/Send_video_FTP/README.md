@@ -14,8 +14,8 @@
 ├── ftp_telegram.sh             # Script principal
 ├── telegram.functions.sh       # Fonctions Telegram
 ├── cleanup.sh                  # Script de maintenance
-├── check_and_start.sh         # Script de vérification du moniteur
-└── ftp_monitor.sh             # Script de surveillance
+├── check_and_start.sh          # Script de vérification du moniteur
+└── ftp_monitor.sh              # Script de surveillance
 
 /var/tmp/
 ├── FTP_TEMP/                   # Fichiers temporaires
@@ -81,10 +81,6 @@ sudo cp *.sh /usr/local/bin/ftp_video/
 
 ### 4. Configuration des permissions et sécurité
 ```bash
-# --- Création du groupe ---
-# Création du groupe ftptelegram s'il n'existe pas déjà
-sudo groupadd ftptelegram 2>/dev/null || true
-
 # --- Permissions des répertoires principaux ---
 # Répertoire des binaires : lecture et exécution pour le groupe
 sudo chmod 750 /usr/local/bin/ftp_video
@@ -128,9 +124,6 @@ ls -la /etc/telegram/ftp_video
 ls -la /var/tmp/FTP_TEMP
 ls -la /var/log/ftp_telegram
 ls -la /var/tmp/FTP_FILES_SEEN.txt
-
-# Vérifier que l'utilisateur telegram fait partie du groupe ftptelegram
-groups telegram
 
 # Nettoyer
 cd ~           # Retourner au répertoire home
