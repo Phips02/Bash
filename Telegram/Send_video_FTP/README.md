@@ -115,7 +115,7 @@ sudo chown -R root:ftptelegram /usr/local/bin/ftp_video
 
 # Dossiers de travail
 sudo chown root:ftptelegram /var/tmp/FTP_TEMP
-sudo chown root:ftptelegram /var/log/ftp_telegram
+sudo chown -R root:ftptelegram /var/log/ftp_telegram
 sudo chown root:ftptelegram /var/tmp/FTP_FILES_SEEN.txt
 
 # --- Vérification des permissions ---
