@@ -1,5 +1,5 @@
 #Phips
-#Version : 2024.03.24 11:00
+#Version : 2024.03.24 14:00
 
 
 # Système d'envoi automatique de vidéos FTP vers Telegram
@@ -27,9 +27,9 @@
 
 ### 1. Préparation du système
 ```bash
-# Installation de sudo si non présent
+# Installation des dépendances
 apt update
-apt install sudo
+apt install sudo lftp curl git -y
 
 # Création de l'utilisateur telegram
 sudo useradd -m -s /bin/bash telegram
@@ -39,10 +39,6 @@ sudo passwd telegram
 
 # Ajouter l'utilisateur telegram au groupe sudo
 sudo usermod -aG sudo telegram
-
-# Installation des dépendances
-sudo apt update
-sudo apt install lftp curl git
 
 # Création du groupe ftptelegram et ajout des utilisateurs
 sudo groupadd ftptelegram
@@ -80,63 +76,84 @@ sudo mkdir -p /var/log/ftp_telegram
 # Copier les fichiers
 sudo cp ftp_config.cfg /etc/telegram/ftp_video/
 sudo cp *.sh /usr/local/bin/ftp_video/
+```
 
-# Configurer les permissions
-sudo chmod 755 /usr/local/bin/ftp_video
-sudo chmod 755 /var/log/ftp_telegram
-sudo chmod 755 /var/tmp/FTP_TEMP
-sudo chmod 600 /etc/telegram/ftp_video/ftp_config.cfg
-sudo chmod +x /usr/local/bin/ftp_video/*.sh
-sudo touch /var/tmp/FTP_FILES_SEEN.txt
-sudo chmod 666 /var/tmp/FTP_FILES_SEEN.txt
-
-# Sécuriser les fichiers
-# Note: Ignorer l'erreur si le groupe existe déjà
+### 4. Configuration des permissions et sécurité
+```bash
+# --- Création du groupe ---
+# Création du groupe ftptelegram s'il n'existe pas déjà
 sudo groupadd ftptelegram 2>/dev/null || true
-sudo chown root:ftptelegram /etc/telegram/ftp_video/ftp_config.cfg
-sudo chmod 640 /etc/telegram/ftp_video/ftp_config.cfg
-sudo chown root:ftptelegram /usr/local/bin/ftp_video/*.sh
-sudo chmod 750 /usr/local/bin/ftp_video/*.sh
-sudo chown root:ftptelegram /var/tmp/FTP_TEMP
-sudo chmod 775 /var/tmp/FTP_TEMP
-sudo chown root:ftptelegram /var/log/ftp_telegram
+
+# --- Permissions des répertoires principaux ---
+# Répertoire des binaires : lecture et exécution pour le groupe
+sudo chmod 750 /usr/local/bin/ftp_video
+
+# Répertoire des logs : écriture complète pour le groupe (important pour la création des logs)
 sudo chmod 775 /var/log/ftp_telegram
-sudo chown root:ftptelegram /var/tmp/FTP_FILES_SEEN.txt
+
+# Répertoire temporaire : écriture pour le groupe, lecture pour les autres
+sudo chmod 775 /var/tmp/FTP_TEMP
+
+# --- Permissions des fichiers ---
+# Scripts : exécutables uniquement par root et le groupe
+sudo find /usr/local/bin/ftp_video -type f -name "*.sh" -exec chmod 750 {} \;
+
+# Configuration : lecture seule pour le groupe, invisible pour les autres
+sudo find /etc/telegram/ftp_video -type f -exec chmod 640 {} \;
+
+# Fichier de cache : lecture/écriture pour le groupe, lecture seule pour les autres
+sudo touch /var/tmp/FTP_FILES_SEEN.txt
 sudo chmod 664 /var/tmp/FTP_FILES_SEEN.txt
 
-# Vérifier les permissions actuelles
-ls -l /usr/local/bin/ftp_video/phips_logger.sh
+# --- Création du premier fichier de log ---
+sudo touch /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
+sudo chmod 664 /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
 
-# Ajuster les permissions pour le groupe ftptelegram
-sudo chown root:ftptelegram /usr/local/bin/ftp_video/phips_logger.sh
-sudo chmod 750 /usr/local/bin/ftp_video/phips_logger.sh
+# --- Attribution des propriétaires ---
+# Configuration
+sudo chown -R root:ftptelegram /etc/telegram/ftp_video
+
+# Scripts
+sudo chown -R root:ftptelegram /usr/local/bin/ftp_video
+
+# Dossiers de travail
+sudo chown root:ftptelegram /var/tmp/FTP_TEMP
+sudo chown root:ftptelegram /var/log/ftp_telegram
+sudo chown root:ftptelegram /var/tmp/FTP_FILES_SEEN.txt
+
+# --- Vérification des permissions ---
+ls -la /usr/local/bin/ftp_video
+ls -la /etc/telegram/ftp_video
+ls -la /var/tmp/FTP_TEMP
+ls -la /var/log/ftp_telegram
+ls -la /var/tmp/FTP_FILES_SEEN.txt
 
 # Vérifier que l'utilisateur telegram fait partie du groupe ftptelegram
 groups telegram
 
 # Nettoyer
-cd ../..
-rm -rf Bash
+cd ~           # Retourner au répertoire home
+rm -rf Bash    # Supprimer le dossier Bash
 ```
 
-### 4. Configuration du bot
+### 5. Configuration du bot
 ```bash
 # Éditer la configuration
 sudo nano /etc/telegram/ftp_video/ftp_config.cfg
 ```
 
-### 5. Configuration du CRON
+### 6. Configuration du CRON
 ```bash
 # Ouvrir l'éditeur crontab
 sudo crontab -e
 
 # Ajouter ces lignes
 @reboot /usr/local/bin/ftp_video/ftp_monitor.sh &
-*/5 * * * * if ! pgrep -f "ftp_monitor.sh" > /dev/null; then /usr/local/bin/ftp_video/ftp_monitor.sh & fi
+*/10 * * * * /usr/local/bin/ftp_video/check_and_start.sh
 0 0 * * * /usr/local/bin/ftp_video/cleanup.sh
 ```
 
-### 6. Démarrage du service
+### 7. Démarrage du service
 ```bash
 # Se connecter au groupe (nécessaire après l'installation)
 newgrp ftptelegram
@@ -149,7 +166,7 @@ ps aux | grep ftp_monitor
 tail -f /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
 ```
 
-### 7. Commandes utiles
+### 8. Commandes utiles
 ```bash
 # Arrêt
 sudo pkill -f "ftp_monitor.sh"
@@ -163,7 +180,7 @@ print_log "info" "test" "Test du système"
 tail -n 20 /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
 
 
-### 8. Mise à jour depuis GitHub
+### 9. Mise à jour depuis GitHub
 ```bash
 cd /tmp
 git clone https://github.com/Phips02/Bash.git
