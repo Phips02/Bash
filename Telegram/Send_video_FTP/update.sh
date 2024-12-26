@@ -97,4 +97,14 @@ print_log "INFO" "update" "Nettoyage des fichiers temporaires"
 rm -rf "${TEMP_DIR}"
 
 print_log "INFO" "update" "Processus de mise à jour terminé"
+
+# Demander si l'utilisateur souhaite redémarrer le serveur
+read -p "Voulez-vous redémarrer le serveur maintenant pour appliquer les changements ? (o/N) " response
+if [[ "$response" =~ ^[oO]$ ]]; then
+    print_log "INFO" "update" "Redémarrage du serveur..."
+    sudo reboot
+else
+    print_log "WARNING" "update" "N'oubliez pas de redémarrer le serveur plus tard pour appliquer tous les changements"
+fi
+
 exit 0

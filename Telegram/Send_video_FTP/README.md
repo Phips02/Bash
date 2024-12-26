@@ -160,6 +160,13 @@ ps aux | grep ftp_monitor
 tail -f /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
 ```
 
+⚠️ **Note importante** : Après l'installation initiale ou une mise à jour majeure, il est recommandé de redémarrer le serveur pour s'assurer que tous les services sont correctement initialisés et que les logs fonctionnent correctement.
+
+```bash
+# Redémarrer le serveur
+sudo reboot
+```
+
 ### 8. Commandes utiles
 ```bash
 # Arrêt
