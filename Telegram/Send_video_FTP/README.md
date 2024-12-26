@@ -16,9 +16,9 @@
 ├── cleanup.sh                  # Script de maintenance
 ├── check_and_start.sh          # Script de vérification du moniteur
 ├── ftp_monitor.sh              # Script de surveillance
-├── update.sh                  # Script de mise à jour
-└── backup/                    # Dossier de sauvegarde pour les mises à jour
-    └── YYYYMMDD_HHMMSS/      # Sous-dossiers de backup horodatés
+├── update.sh                   # Script de mise à jour
+└── backup/                     # Dossier de sauvegarde pour les mises à jour
+    └── YYYYMMDD_HHMMSS/        # Sous-dossiers de backup horodatés
 
 /var/tmp/
 ├── FTP_TEMP/                   # Fichiers temporaires
