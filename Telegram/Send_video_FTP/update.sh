@@ -1,13 +1,9 @@
 #!/bin/bash
 
-
 #A placer dans /usr/local/bin/ftp_video/update.sh
-
 
 #Phips
 #Version : 2024.12.26 12:30
-
-
 
 # Charger la configuration
 CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
@@ -30,11 +26,13 @@ print_log "info" "update" "Démarrage de la mise à jour depuis GitHub"
 TEMP_DIR="/tmp/Bash_update_$$"
 print_log "info" "update" "Création du dossier temporaire: $TEMP_DIR"
 
-# Définir le dossier de backup fixe
-BACKUP_DIR="/usr/local/bin/ftp_video/backup"
+# Définir le dossier de backup avec date et heure
+BACKUP_TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+BACKUP_BASE="/usr/local/bin/ftp_video/backup"
+BACKUP_DIR="${BACKUP_BASE}/${BACKUP_TIMESTAMP}"
 
 # Cloner le dépôt
-if git clone https://github.com/Phips02/Bash.git "$TEMP_DIR"; then
+if git clone "https://github.com/Phips02/Bash.git" "$TEMP_DIR"; then
     print_log "info" "update" "Dépôt cloné avec succès"
     
     # Copier les fichiers
@@ -46,7 +44,6 @@ if git clone https://github.com/Phips02/Bash.git "$TEMP_DIR"; then
     
     # Sauvegarder les anciens scripts
     print_log "info" "update" "Création du backup dans $BACKUP_DIR"
-    sudo rm -rf "$BACKUP_DIR"  # Supprimer l'ancien backup s'il existe
     sudo mkdir -p "$BACKUP_DIR"
     sudo cp /usr/local/bin/ftp_video/*.sh "$BACKUP_DIR/"
     
@@ -70,8 +67,9 @@ else
     print_log "error" "update" "Erreur lors du clonage du dépôt"
 fi
 
-# Nettoyage
+# Nettoyage des fichiers temporaires
 print_log "info" "update" "Nettoyage des fichiers temporaires"
-rm -rf "$TEMP_DIR"
+rm -rf "${TEMP_DIR}"
 
-print_log "info" "update" "Processus de mise à jour terminé" 
+print_log "info" "update" "Processus de mise à jour terminé"
+exit 0
