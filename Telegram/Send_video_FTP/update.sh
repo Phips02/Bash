@@ -47,6 +47,10 @@ if git clone "https://github.com/Phips02/Bash.git" "$TEMP_DIR"; then
     sudo mkdir -p "$BACKUP_DIR"
     sudo cp /usr/local/bin/ftp_video/*.sh "$BACKUP_DIR/"
     
+    # Changer les permissions du backup immédiatement après la copie
+    sudo chown -R telegram:ftptelegram "$BACKUP_DIR"
+    sudo chmod -R 770 "$BACKUP_DIR"
+    
     # Copier les nouveaux scripts
     print_log "info" "update" "Copie des nouveaux scripts"
     if sudo cp *.sh /usr/local/bin/ftp_video/; then
@@ -71,10 +75,10 @@ fi
 print_log "info" "update" "Nettoyage des anciens backups"
 cd "$BACKUP_BASE" || exit 1
 
-# Supprimer les anciens backups sans utiliser sudo
+# Supprimer les anciens backups en tant qu'utilisateur telegram
 ls -1t | tail -n +3 | while read -r old_backup; do
     print_log "info" "update" "Suppression de l'ancien backup: $old_backup"
-    rm -rf "$BACKUP_BASE/$old_backup"
+    sudo -u telegram rm -rf "$BACKUP_BASE/$old_backup"
 done
 
 print_log "info" "update" "Nettoyage des fichiers temporaires"
