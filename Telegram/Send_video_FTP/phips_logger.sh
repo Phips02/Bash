@@ -110,24 +110,31 @@ send_telegram_notification() {
 
 # Fonction principale de logging
 print_log() {
-    local level="${1^^}"  # Convertir en majuscules
-    local component="$2"
+    local level="$1"
+    local module="$2"
     local message="$3"
+    local hostname=$(hostname)
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    
+    # Convertir le niveau en majuscules pour uniformisation
+    level=$(echo "$level" | tr '[:lower:]' '[:upper:]')
+    
+    # Formater le message de log
+    local log_message="$timestamp [$level] [$module] [$hostname] $message"
     
     # Valider le niveau de log
     if ! validate_log_level "$level"; then
         return 0
     fi
     
-    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     local log_file=$(get_log_file)
-    local log_entry="${timestamp} [${level}] [${component}] [${HOSTNAME}] ${message}"
+    local log_entry="${timestamp} [${level}] [${module}] [${hostname}] ${message}"
     
     # Afficher le message dans la console
     echo "$message"
     
     # Envoyer une notification si nécessaire
-    send_telegram_notification "$message" "$level" "$component"
+    send_telegram_notification "$message" "$level" "$module"
     
     # Essayer d'écrire directement dans le fichier
     if echo "$log_entry" >> "$log_file" 2>/dev/null; then
