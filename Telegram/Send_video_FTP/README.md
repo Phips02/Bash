@@ -15,7 +15,9 @@
 ├── telegram.functions.sh       # Fonctions Telegram
 ├── cleanup.sh                  # Script de maintenance
 ├── check_and_start.sh          # Script de vérification du moniteur
-└── ftp_monitor.sh              # Script de surveillance
+├── ftp_monitor.sh              # Script de surveillance
+├── update.sh                  # Script de mise à jour
+└── backup/                    # Dossier de sauvegarde pour les mises à jour
 
 /var/tmp/
 ├── FTP_TEMP/                   # Fichiers temporaires
@@ -128,6 +130,10 @@ ls -la /etc/telegram/ftp_video
 ls -la /var/tmp/FTP_TEMP
 ls -la /var/log/ftp_telegram
 ls -la /var/tmp/FTP_FILES_SEEN.txt
+
+# Nettoyer
+cd ~           # Retourner au répertoire home
+rm -rf Bash    # Supprimer le dossier Bash
 ```
 
 ### 5. Configuration du bot

@@ -1,5 +1,14 @@
 #!/bin/bash
 
+
+#A placer dans /usr/local/bin/ftp_video/update.sh
+
+
+#Phips
+#Version : 2024.12.26 12:30
+
+
+
 # Charger la configuration
 CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
 
@@ -21,6 +30,9 @@ print_log "info" "update" "Démarrage de la mise à jour depuis GitHub"
 TEMP_DIR="/tmp/Bash_update_$$"
 print_log "info" "update" "Création du dossier temporaire: $TEMP_DIR"
 
+# Définir le dossier de backup fixe
+BACKUP_DIR="/usr/local/bin/ftp_video/backup"
+
 # Cloner le dépôt
 if git clone https://github.com/Phips02/Bash.git "$TEMP_DIR"; then
     print_log "info" "update" "Dépôt cloné avec succès"
@@ -33,8 +45,8 @@ if git clone https://github.com/Phips02/Bash.git "$TEMP_DIR"; then
     }
     
     # Sauvegarder les anciens scripts
-    BACKUP_DIR="/usr/local/bin/ftp_video/backup_$(date +%Y%m%d_%H%M%S)"
     print_log "info" "update" "Création du backup dans $BACKUP_DIR"
+    sudo rm -rf "$BACKUP_DIR"  # Supprimer l'ancien backup s'il existe
     sudo mkdir -p "$BACKUP_DIR"
     sudo cp /usr/local/bin/ftp_video/*.sh "$BACKUP_DIR/"
     

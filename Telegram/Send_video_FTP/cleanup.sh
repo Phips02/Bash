@@ -123,11 +123,10 @@ EOF
 }
 
 # Exécution des fonctions de nettoyage
-print_log "info" "cleanup" "=== Début du nettoyage FTP ==="
+
 cleanup_ftp
 cleanup_temp_dir
 manage_logs
 cleanup_state_file
-print_log "info" "cleanup" "=== Fin du nettoyage FTP ==="
 
 print_log "info" "cleanup" "Processus de nettoyage terminé"
