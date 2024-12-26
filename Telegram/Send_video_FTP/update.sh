@@ -3,7 +3,7 @@
 #A placer dans /usr/local/bin/ftp_video/update.sh
 
 #Phips
-#Version : 2024.12.26 12:30
+#Version : 2024.12.26 20:40
 
 # Charger la configuration
 CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
@@ -44,7 +44,7 @@ if git clone "https://github.com/Phips02/Bash.git" "$TEMP_DIR"; then
     
     # Sauvegarder les anciens scripts
     print_log "info" "update" "Création du backup dans $BACKUP_DIR"
-    sudo mkdir -p "$BACKUP_DIR"
+    sudo -u telegram mkdir -p "$BACKUP_DIR"
     sudo cp /usr/local/bin/ftp_video/*.sh "$BACKUP_DIR/"
     
     # Changer les permissions du backup immédiatement après la copie
@@ -75,10 +75,22 @@ fi
 print_log "info" "update" "Nettoyage des anciens backups"
 cd "$BACKUP_BASE" || exit 1
 
-# Supprimer les anciens backups en tant qu'utilisateur telegram
+# S'assurer que tous les dossiers ont les bonnes permissions
+print_log "info" "update" "Correction des permissions des dossiers de backup"
+if sudo chown -R telegram:ftptelegram "$BACKUP_BASE"/* && sudo chmod -R 770 "$BACKUP_BASE"/*; then
+    print_log "info" "update" "Permissions corrigées avec succès"
+else
+    print_log "warning" "update" "Certains dossiers n'ont pas pu être modifiés (probablement appartenant à root)"
+fi
+
+# Supprimer les anciens backups
 ls -1t | tail -n +3 | while read -r old_backup; do
-    print_log "info" "update" "Suppression de l'ancien backup: $old_backup"
-    sudo -u telegram rm -rf "$BACKUP_BASE/$old_backup"
+    print_log "info" "update" "Tentative de suppression du backup: $old_backup"
+    if rm -rf "$BACKUP_BASE/$old_backup" 2>/dev/null; then
+        print_log "info" "update" "Backup supprimé avec succès: $old_backup"
+    else
+        print_log "warning" "update" "Impossible de supprimer le backup: $old_backup (permissions insuffisantes)"
+    fi
 done
 
 print_log "info" "update" "Nettoyage des fichiers temporaires"

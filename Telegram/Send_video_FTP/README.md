@@ -87,7 +87,7 @@ sudo cp *.sh /usr/local/bin/ftp_video/
 # --- Permissions des répertoires principaux ---
 # Répertoire des binaires : lecture et exécution pour le groupe
 sudo chmod 750 /usr/local/bin/ftp_video
-sudo chown -R root:ftptelegram /usr/local/bin/ftp_video
+sudo find /usr/local/bin/ftp_video -maxdepth 1 -type f -name "*.sh" -exec chown root:ftptelegram {} \;
 
 # Répertoire des logs : écriture complète pour le groupe
 sudo chmod 775 /var/log/ftp_telegram
@@ -190,17 +190,18 @@ tail -n 20 /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
 #### Méthode manuelle
 ```bash
 cd /tmp
+rm -rf Bash
 git clone https://github.com/Phips02/Bash.git
 cd Bash/Telegram/Send_video_FTP
 sudo cp *.sh /usr/local/bin/ftp_video/
 sudo chmod +x /usr/local/bin/ftp_video/*.sh
-cd ../..
+cd /tmp
 rm -rf Bash
 ```
 
 #### Méthode automatique (recommandée)
 ```bash
-# Lancer le script de mise à jour
+# Lancer le script de mise à jour (doit être exécuté avec sudo)
 sudo /usr/local/bin/ftp_video/update.sh
 
 # Vérifier les logs de mise à jour
@@ -210,9 +211,10 @@ tail -f /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
 Le script de mise à jour automatique :
 - Crée une sauvegarde horodatée des scripts existants dans le dossier backup
 - Met à jour depuis GitHub
-- Gère les permissions
+- Gère les permissions des fichiers et dossiers
 - Restaure la sauvegarde en cas d'erreur
 - Conserve uniquement les 2 backups les plus récents
+- Gère les erreurs de permissions avec des logs appropriés
 
 ## Licence
 Ce projet est sous licence GNU GPLv3 - voir le fichier [LICENSE](LICENSE) pour plus de détails.
