@@ -70,10 +70,19 @@ fi
 # Nettoyer les anciens backups (ne garder que les 2 plus récents)
 print_log "info" "update" "Nettoyage des anciens backups"
 cd "$BACKUP_BASE" || exit 1
-ls -1t | tail -n +3 | while read -r old_backup; do
-    print_log "info" "update" "Suppression de l'ancien backup: $old_backup"
-    rm -rf "$BACKUP_BASE/$old_backup"
-done
+
+# Vérifier si l'utilisateur a les droits sudo
+if sudo -n true 2>/dev/null; then
+    # L'utilisateur a les droits sudo
+    ls -1t | tail -n +3 | while read -r old_backup; do
+        print_log "info" "update" "Suppression de l'ancien backup: $old_backup"
+        sudo rm -rf "$BACKUP_BASE/$old_backup"
+    done
+else
+    # L'utilisateur n'a pas les droits sudo, on affiche un avertissement
+    print_log "warning" "update" "Impossible de nettoyer les anciens backups - droits insuffisants"
+    print_log "info" "update" "Pour nettoyer manuellement, exécutez : sudo rm -rf $BACKUP_BASE/*/)"
+fi
 
 print_log "info" "update" "Nettoyage des fichiers temporaires"
 rm -rf "${TEMP_DIR}"

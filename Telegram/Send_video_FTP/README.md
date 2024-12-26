@@ -56,7 +56,7 @@ sudo usermod -a -G ftptelegram $USER  # Ajoute aussi l'utilisateur courant
 su - telegram
 
 # Vérifier les groupes
-groups
+groups telegram
 
 # Aller dans le répertoire home de l'utilisateur telegram
 cd ~
@@ -87,54 +87,47 @@ sudo cp *.sh /usr/local/bin/ftp_video/
 # --- Permissions des répertoires principaux ---
 # Répertoire des binaires : lecture et exécution pour le groupe
 sudo chmod 750 /usr/local/bin/ftp_video
+sudo chown -R root:ftptelegram /usr/local/bin/ftp_video
 
-# Répertoire des logs : écriture complète pour le groupe (important pour la création des logs)
+# Répertoire des logs : écriture complète pour le groupe
 sudo chmod 775 /var/log/ftp_telegram
+sudo chown -R telegram:ftptelegram /var/log/ftp_telegram
 
-# Répertoire temporaire : écriture pour le groupe, lecture pour les autres
+# Répertoire temporaire : écriture pour le groupe
 sudo chmod 775 /var/tmp/FTP_TEMP
+sudo chown root:ftptelegram /var/tmp/FTP_TEMP
+
+# Répertoire de backup : accès complet pour l'utilisateur telegram
+sudo mkdir -p /usr/local/bin/ftp_video/backup
+sudo chown -R telegram:ftptelegram /usr/local/bin/ftp_video/backup
+sudo chmod -R 770 /usr/local/bin/ftp_video/backup
 
 # --- Permissions des fichiers ---
 # Scripts : exécutables uniquement par root et le groupe
 sudo find /usr/local/bin/ftp_video -type f -name "*.sh" -exec chmod 750 {} \;
+sudo chown root:ftptelegram /usr/local/bin/ftp_video/*.sh
 
-# Configuration : lecture seule pour le groupe, invisible pour les autres
+# Configuration : lecture seule pour le groupe
 sudo find /etc/telegram/ftp_video -type f -exec chmod 640 {} \;
-
-# Fichier de cache : lecture/écriture pour le groupe, lecture seule pour les autres
-sudo touch /var/tmp/FTP_FILES_SEEN.txt
-sudo chmod 664 /var/tmp/FTP_FILES_SEEN.txt
-
-# --- Création du premier fichier de log ---
-sudo touch /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
-sudo chmod 664 /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
-
-# --- Attribution des propriétaires ---
-# Configuration
 sudo chown -R root:ftptelegram /etc/telegram/ftp_video
 
-# Scripts
-sudo chown -R root:ftptelegram /usr/local/bin/ftp_video
+# Fichiers de travail
+sudo touch /var/tmp/FTP_FILES_SEEN.txt
+sudo chmod 664 /var/tmp/FTP_FILES_SEEN.txt
+sudo chown telegram:ftptelegram /var/tmp/FTP_FILES_SEEN.txt
 
-# Dossiers de travail
-sudo chown root:ftptelegram /var/tmp/FTP_TEMP
-sudo chown -R root:ftptelegram /var/log/ftp_telegram
-sudo chown root:ftptelegram /var/tmp/FTP_FILES_SEEN.txt
-
-# Script de mise à jour
-sudo chmod 750 /usr/local/bin/ftp_video/update.sh
-sudo chown root:ftptelegram /usr/local/bin/ftp_video/update.sh
+# Création du premier fichier de log
+sudo touch /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
+sudo chmod 664 /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
+sudo chown telegram:ftptelegram /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
 
 # --- Vérification des permissions ---
 ls -la /usr/local/bin/ftp_video
+ls -la /usr/local/bin/ftp_video/backup
 ls -la /etc/telegram/ftp_video
 ls -la /var/tmp/FTP_TEMP
 ls -la /var/log/ftp_telegram
 ls -la /var/tmp/FTP_FILES_SEEN.txt
-
-# Nettoyer
-cd ~           # Retourner au répertoire home
-rm -rf Bash    # Supprimer le dossier Bash
 ```
 
 ### 5. Configuration du bot
@@ -177,8 +170,19 @@ sudo pkill -f "ftp_monitor.sh"
 
 # Test du logger
 source /usr/local/bin/ftp_video/phips_logger.sh
-print_log "info" "test" "Test du système"
+
+# Tests des différents niveaux de notification
+print_log "debug" "test" "Message de test DEBUG 🔍"
+print_log "info" "test" "Message de test INFO ℹ️"
+print_log "warning" "test" "Message de test WARNING ⚠️"
+print_log "error" "test" "Message de test ERROR ❌"
+print_log "critical" "test" "Message de test CRITICAL 🚨"
+
+# Vérifier les logs
 tail -n 20 /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
+
+# Vérifier les notifications Telegram
+# Les notifications apparaîtront dans votre chat Telegram selon le NOTIFICATION_LEVEL configuré
 ```
 
 ### 9. Mise à jour depuis GitHub

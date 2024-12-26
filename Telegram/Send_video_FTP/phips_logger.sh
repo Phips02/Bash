@@ -1,9 +1,20 @@
 #!/bin/bash
 
-# A placer dans /usr/local/bin/ftp_video/phips_logger.sh
+#A placer dans /usr/local/bin/ftp_video/phips_logger.sh
 
-# Phips
-# Version : 2024.03.24 19:00
+#Phips
+#Version : 2024.12.26 10:50
+
+# Charger la configuration
+if [ -f "/etc/telegram/ftp_video/ftp_config.cfg" ]; then
+    source "/etc/telegram/ftp_video/ftp_config.cfg"
+else
+    echo "Erreur: Fichier de configuration non trouvé"
+    exit 1
+fi
+
+# Définir le répertoire de log par défaut si non défini
+LOG_DIR="${LOG_DIR:-/var/log/ftp_telegram}"
 
 # Obtenir le nom de l'hôte pour l'identification du device
 HOSTNAME=$(hostname)
@@ -45,15 +56,15 @@ init_log_file() {
     local log_file="$1"
     local log_dir="$(dirname "$log_file")"
     
-    # Créer le dossier si nécessaire
-    if ! mkdir -p "$log_dir" 2>/dev/null; then
-        return 1
+    # Vérifier si on peut écrire dans le fichier
+    if [ -w "$log_file" ]; then
+        return 0
     fi
     
-    # Créer le fichier s'il n'existe pas
+    # Si le fichier n'existe pas, essayer de le créer
     if [ ! -f "$log_file" ]; then
         touch "$log_file" 2>/dev/null || return 1
-        chmod "${LOG_PERMISSIONS}" "$log_file" 2>/dev/null || return 1
+        chmod 664 "$log_file" 2>/dev/null || return 1
     fi
     
     return 0
@@ -118,14 +129,12 @@ print_log() {
     # Envoyer une notification si nécessaire
     send_telegram_notification "$message" "$level" "$component"
     
-    # Initialiser le fichier de log
-    if ! init_log_file "$log_file"; then
-        log_file="/tmp/ftp_telegram_$(date +%Y-%m-%d).log"
-        print_log "WARNING" "logger" "Utilisation du fichier de fallback: $log_file"
-        init_log_file "$log_file"
+    # Essayer d'écrire directement dans le fichier
+    if echo "$log_entry" >> "$log_file" 2>/dev/null; then
+        return 0
     fi
     
-    # Écrire dans le log
-    echo "$log_entry" >> "$log_file" 2>/dev/null || \
+    # Si l'écriture échoue, utiliser le fallback
     echo "$log_entry" >> "/tmp/ftp_telegram_$(date +%Y-%m-%d).log"
+    echo "Utilisation du fichier de fallback: /tmp/ftp_telegram_$(date +%Y-%m-%d).log"
 }
