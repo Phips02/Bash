@@ -3,7 +3,7 @@
 # A placer dans /usr/local/bin/ftp_video/check_and_start.sh
 
 # Phips
-# Version : 2024.03.24 16:00
+# Version : 2024.12.26 21:00
 
 # Charger la configuration
 CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
@@ -28,8 +28,8 @@ fi
 
 # Vérifier si le script est en cours d'exécution
 if ! /usr/bin/pgrep -f "ftp_monitor.sh" > /dev/null; then
-    print_log "info" "check_and_start" "ftp_monitor.sh n'est pas en cours d'exécution, démarrage..."
+    print_log "INFO" "check_and_start" "ftp_monitor.sh n'est pas en cours d'exécution, démarrage..."
     /usr/local/bin/ftp_video/ftp_monitor.sh > /dev/null 2>&1 &
 else
-    print_log "info" "check_and_start" "ftp_monitor.sh est déjà en cours d'exécution"
+    print_log "INFO" "check_and_start" "ftp_monitor.sh est déjà en cours d'exécution"
 fi 

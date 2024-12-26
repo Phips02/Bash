@@ -3,7 +3,7 @@
 #A placer dans /usr/local/bin/ftp_video/ftp_telegram.sh
 
 #Phips
-#Version : 2024.12.24 10:50
+# Version : 2024.12.26 21:00
 
 # Charger la configuration
 CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
@@ -65,13 +65,13 @@ if ! declare -f telegram_video_send >/dev/null; then
 fi
 
 # Test immédiat du logger
-print_log "info" "ftp_telegram" "Démarrage du script"
+print_log "INFO" "ftp_telegram" "Démarrage du script"
 
 # Vérification et création des dossiers nécessaires
 if [ ! -d "$TEMP_DIR" ]; then
-    print_log "info" "ftp_telegram" "Création du répertoire temporaire: $TEMP_DIR"
+    print_log "INFO" "ftp_telegram" "Création du répertoire temporaire: $TEMP_DIR"
     mkdir -p "$TEMP_DIR" || {
-        print_log "critical" "ftp_telegram" "Impossible de créer $TEMP_DIR"
+        print_log "CRITICAL" "ftp_telegram" "Impossible de créer $TEMP_DIR"
         exit 1
     }
 fi
@@ -106,21 +106,21 @@ send_to_telegram() {
 $FILE_NAME"
 
     while [ $retry_count -lt $max_retries ]; do
-        print_log "info" "ftp_telegram" "Tentative d'envoi ($((retry_count+1))/$max_retries): ${FILE_NAME}"
+        print_log "INFO" "ftp_telegram" "Tentative d'envoi ($((retry_count+1))/$max_retries): ${FILE_NAME}"
         
         if telegram_video_send "$FILE_PATH" "$CAPTION" "$CHAT_ID"; then
-            print_log "info" "ftp_telegram" "Fichier envoyé avec succès: ${FILE_NAME}"
+            print_log "INFO" "ftp_telegram" "Fichier envoyé avec succès: ${FILE_NAME}"
             return 0
         fi
         
         ((retry_count++))
         if [ $retry_count -lt $max_retries ]; then
-            print_log "info" "ftp_telegram" "Nouvelle tentative dans 5 secondes"
+            print_log "INFO" "ftp_telegram" "Nouvelle tentative dans 5 secondes"
             sleep 5
         fi
     done
     
-    print_log "error" "ftp_telegram" "Échec de l'envoi après $max_retries tentatives: ${FILE_NAME}"
+    print_log "ERROR" "ftp_telegram" "Échec de l'envoi après $max_retries tentatives: ${FILE_NAME}"
     return 1
 }
 
@@ -149,14 +149,14 @@ get_client_chat_id() {
 
 # Fonction process_ftp
 process_ftp() {
-    print_log "info" "ftp_telegram" "Démarrage du traitement FTP"
+    print_log "INFO" "ftp_telegram" "Démarrage du traitement FTP"
     local error_file=$(mktemp)
     
     # Vérifier et créer le TEMP_DIR avec les bonnes permissions
     if [ ! -d "$TEMP_DIR" ]; then
-        print_log "info" "ftp_telegram" "Création du répertoire temporaire: $TEMP_DIR"
+        print_log "INFO" "ftp_telegram" "Création du répertoire temporaire: $TEMP_DIR"
         mkdir -p "$TEMP_DIR" || {
-            print_log "critical" "ftp_telegram" "Impossible de créer $TEMP_DIR"
+            print_log "CRITICAL" "ftp_telegram" "Impossible de créer $TEMP_DIR"
             return 1
         }
         # Ajouter les bonnes permissions
@@ -184,21 +184,21 @@ quit
 EOF
 
     # Exécuter le script FTP avec vérification du statut
-    print_log "info" "ftp_telegram" "Démarrage du téléchargement des fichiers"
+    print_log "INFO" "ftp_telegram" "Démarrage du téléchargement des fichiers"
     if ! lftp -f "$ftp_script" 2>"$error_file"; then
         if grep -q "No such file or directory" "$error_file"; then
-            print_log "warning" "ftp_telegram" "Aucun nouveau fichier à télécharger"
+            print_log "WARNING" "ftp_telegram" "Aucun nouveau fichier à télécharger"
         else
-            print_log "error" "ftp_telegram" "Erreur lors du téléchargement des fichiers"
+            print_log "ERROR" "ftp_telegram" "Erreur lors du téléchargement des fichiers"
             cat "$error_file" | while read line; do
-                print_log "error" "ftp_telegram" "$line"
+                print_log "ERROR" "ftp_telegram" "$line"
             done
         fi
     fi
 
     # Nettoyage des fichiers temporaires
     rm -f "$error_file" "$ftp_script"
-    print_log "info" "ftp_telegram" "Fin du traitement FTP"
+    print_log "INFO" "ftp_telegram" "Fin du traitement FTP"
 
     # Traitement des fichiers téléchargés
     find "$TEMP_DIR" -type f -name "*.mkv" | while read FILE; do
@@ -209,10 +209,10 @@ EOF
         if ! grep -Fxq "$relative_path" $STATE_FILE; then
             if send_to_telegram "$FILE" "$client_chat_id" "$TELEGRAM_BOT_TOKEN" "$client_name"; then
                 echo "$relative_path" >> $STATE_FILE
-                print_log "info" "ftp_telegram" "Fichier envoyé avec succès à $client_name (Chat ID: $client_chat_id): $relative_path"
+                print_log "INFO" "ftp_telegram" "Fichier envoyé avec succès à $client_name (Chat ID: $client_chat_id): $relative_path"
             fi
         else
-            print_log "info" "ftp_telegram" "Fichier déjà envoyé : $relative_path"
+            print_log "INFO" "ftp_telegram" "Fichier déjà envoyé : $relative_path"
         fi
     done
 }

@@ -3,7 +3,7 @@
 #A placer dans /usr/local/bin/ftp_video/ftp_monitor.sh
 
 #Phips
-#Version : 2024.03.24 10:50
+# Version : 2024.12.26 21:00
 
 # Charger la configuration
 CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
@@ -27,14 +27,14 @@ if ! declare -f print_log >/dev/null; then
 fi
 
 # Gestion du signal d'arrêt
-trap 'print_log "info" "monitor" "Arrêt du moniteur"; exit 0' SIGTERM SIGINT
+trap 'print_log "INFO" "monitor" "Arrêt du moniteur"; exit 0' SIGTERM SIGINT
 
 # Boucle infinie avec pause de 15 secondes
 while true; do
     # Exécuter le script principal
-    print_log "info" "monitor" "Exécution du script principal"
+    print_log "INFO" "monitor" "Exécution du script principal"
     if ! /usr/local/bin/ftp_video/ftp_telegram.sh; then
-        print_log "error" "monitor" "Erreur lors de l'exécution du script principal"
+        print_log "ERROR" "monitor" "Erreur lors de l'exécution du script principal"
     fi
     
     # Attendre 15 secondes

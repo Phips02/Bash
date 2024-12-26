@@ -3,7 +3,8 @@
 #A placer dans /usr/local/bin/ftp_video/cleanup.sh
 
 #Phips
-#Version : 2024.03.24 11:35
+# Version : 2024.12.26 21:00
+
 
 # Charger la configuration
 CONFIG_FILE="/etc/telegram/ftp_video/ftp_config.cfg"
@@ -34,15 +35,15 @@ if ! declare -f print_log >/dev/null; then
     exit 1
 fi
 
-print_log "info" "cleanup" "Démarrage du script de nettoyage"
+print_log "INFO" "cleanup" "Démarrage du script de nettoyage"
 
 # Fonction de nettoyage du dossier temporaire
 cleanup_temp_dir() {
     if [ -d "$TEMP_DIR" ]; then
-        print_log "info" "cleanup" "Nettoyage du dossier temporaire: $TEMP_DIR"
+        print_log "INFO" "cleanup" "Nettoyage du dossier temporaire: $TEMP_DIR"
         rm -rf "${TEMP_DIR:?}"/*
     else
-        print_log "warning" "cleanup" "Dossier temporaire non trouvé: $TEMP_DIR"
+        print_log "WARNING" "cleanup" "Dossier temporaire non trouvé: $TEMP_DIR"
         mkdir -p "$TEMP_DIR"
     fi
 }
@@ -50,10 +51,10 @@ cleanup_temp_dir() {
 # Fonction de gestion des logs
 manage_logs() {
     if [ -d "$LOG_DIR" ]; then
-        print_log "info" "cleanup" "Gestion des fichiers de log dans: $LOG_DIR"
+        print_log "INFO" "cleanup" "Gestion des fichiers de log dans: $LOG_DIR"
         find "$LOG_DIR" -name "ftp_telegram_*.log" -type f -mtime 1 -exec gzip {} \;
     else
-        print_log "warning" "cleanup" "Dossier de logs non trouvé: $LOG_DIR"
+        print_log "WARNING" "cleanup" "Dossier de logs non trouvé: $LOG_DIR"
         mkdir -p "$LOG_DIR"
     fi
 }
@@ -61,10 +62,10 @@ manage_logs() {
 # Fonction de nettoyage du fichier d'état
 cleanup_state_file() {
     if [ -f "$STATE_FILE" ]; then
-        print_log "info" "cleanup" "Nettoyage du fichier d'état: $STATE_FILE"
+        print_log "INFO" "cleanup" "Nettoyage du fichier d'état: $STATE_FILE"
         : > "$STATE_FILE"  # Vide le fichier tout en le préservant
     else
-        print_log "warning" "cleanup" "Fichier d'état non trouvé: $STATE_FILE"
+        print_log "WARNING" "cleanup" "Fichier d'état non trouvé: $STATE_FILE"
         touch "$STATE_FILE"
     fi
 }
@@ -75,11 +76,11 @@ cleanup_ftp() {
     local temp_script="/tmp/ftp_cleanup.txt"
     local error_file="/tmp/ftp_error.txt"
     
-    print_log "info" "cleanup" "Début du nettoyage FTP"
+    print_log "INFO" "cleanup" "Début du nettoyage FTP"
 
     # Vérification des paramètres FTP
     if [ -z "$FTP_HOST" ] || [ -z "$FTP_USER" ] || [ -z "$FTP_PASS" ] || [ -z "$FTP_DIR" ]; then
-        print_log "error" "cleanup" "Paramètres FTP manquants"
+        print_log "ERROR" "cleanup" "Paramètres FTP manquants"
         return 1
     fi
 
@@ -93,7 +94,7 @@ quit
 EOF
 
     if ! lftp -f "$check_script" | grep -q .; then
-        print_log "info" "cleanup" "Le dossier FTP est déjà vide"
+        print_log "INFO" "cleanup" "Le dossier FTP est déjà vide"
         rm -f "$check_script"
         return 0
     fi
@@ -109,12 +110,12 @@ quit
 EOF
 
     if lftp -f "$temp_script" 2>"$error_file"; then
-        print_log "info" "cleanup" "Nettoyage FTP terminé avec succès"
+        print_log "INFO" "cleanup" "Nettoyage FTP terminé avec succès"
     else
         if [ -s "$error_file" ]; then
-            print_log "error" "cleanup" "Erreur FTP: $(cat "$error_file")"
+            print_log "ERROR" "cleanup" "Erreur FTP: $(cat "$error_file")"
         else
-            print_log "error" "cleanup" "Erreur FTP inconnue"
+            print_log "ERROR" "cleanup" "Erreur FTP inconnue"
         fi
     fi
 
@@ -129,4 +130,4 @@ cleanup_temp_dir
 manage_logs
 cleanup_state_file
 
-print_log "info" "cleanup" "Processus de nettoyage terminé"
+print_log "INFO" "cleanup" "Processus de nettoyage terminé"

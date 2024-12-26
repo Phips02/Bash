@@ -3,7 +3,7 @@
 #A placer dans /usr/local/bin/ftp_video/phips_logger.sh
 
 #Phips
-#Version : 2024.12.26 10:50
+# Version : 2024.12.26 21:00
 
 # Charger la configuration
 if [ -f "/etc/telegram/ftp_video/ftp_config.cfg" ]; then
