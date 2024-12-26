@@ -67,7 +67,14 @@ else
     print_log "error" "update" "Erreur lors du clonage du dépôt"
 fi
 
-# Nettoyage des fichiers temporaires
+# Nettoyer les anciens backups (ne garder que les 2 plus récents)
+print_log "info" "update" "Nettoyage des anciens backups"
+cd "$BACKUP_BASE" || exit 1
+ls -1t | tail -n +3 | while read -r old_backup; do
+    print_log "info" "update" "Suppression de l'ancien backup: $old_backup"
+    rm -rf "$BACKUP_BASE/$old_backup"
+done
+
 print_log "info" "update" "Nettoyage des fichiers temporaires"
 rm -rf "${TEMP_DIR}"
 
