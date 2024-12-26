@@ -18,6 +18,7 @@
 ├── ftp_monitor.sh              # Script de surveillance
 ├── update.sh                  # Script de mise à jour
 └── backup/                    # Dossier de sauvegarde pour les mises à jour
+    └── YYYYMMDD_HHMMSS/      # Sous-dossiers de backup horodatés
 
 /var/tmp/
 ├── FTP_TEMP/                   # Fichiers temporaires
@@ -203,10 +204,11 @@ tail -f /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
 ```
 
 Le script de mise à jour automatique :
-- Crée une sauvegarde des scripts existants
+- Crée une sauvegarde horodatée des scripts existants dans le dossier backup
 - Met à jour depuis GitHub
 - Gère les permissions
 - Restaure la sauvegarde en cas d'erreur
+- Conserve uniquement les 2 backups les plus récents
 
 ## Licence
 Ce projet est sous licence GNU GPLv3 - voir le fichier [LICENSE](LICENSE) pour plus de détails.
