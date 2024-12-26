@@ -128,6 +128,12 @@ ls -la /etc/telegram/ftp_video
 ls -la /var/tmp/FTP_TEMP
 ls -la /var/log/ftp_telegram
 ls -la /var/tmp/FTP_FILES_SEEN.txt
+
+# Configuration de sudo pour le script de mise à jour
+sudo rm /etc/sudoers.d/ftp_video
+echo "# Permettre l'exécution du script update.sh sans mot de passe" | sudo tee /etc/sudoers.d/ftp_video
+echo "%ftptelegram ALL=(ALL) NOPASSWD: /usr/local/bin/ftp_video/update.sh" | sudo tee -a /etc/sudoers.d/ftp_video
+sudo chmod 440 /etc/sudoers.d/ftp_video
 ```
 
 ### 5. Configuration du bot
