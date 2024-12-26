@@ -118,16 +118,16 @@ sudo chown root:ftptelegram /var/tmp/FTP_TEMP
 sudo chown -R root:ftptelegram /var/log/ftp_telegram
 sudo chown root:ftptelegram /var/tmp/FTP_FILES_SEEN.txt
 
+# Script de mise à jour
+sudo chmod 750 /usr/local/bin/ftp_video/update.sh
+sudo chown root:ftptelegram /usr/local/bin/ftp_video/update.sh
+
 # --- Vérification des permissions ---
 ls -la /usr/local/bin/ftp_video
 ls -la /etc/telegram/ftp_video
 ls -la /var/tmp/FTP_TEMP
 ls -la /var/log/ftp_telegram
 ls -la /var/tmp/FTP_FILES_SEEN.txt
-
-# Nettoyer
-cd ~           # Retourner au répertoire home
-rm -rf Bash    # Supprimer le dossier Bash
 ```
 
 ### 5. Configuration du bot
@@ -175,6 +175,8 @@ tail -n 20 /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
 ```
 
 ### 9. Mise à jour depuis GitHub
+
+#### Méthode manuelle
 ```bash
 cd /tmp
 git clone https://github.com/Phips02/Bash.git
@@ -184,6 +186,21 @@ sudo chmod +x /usr/local/bin/ftp_video/*.sh
 cd ../..
 rm -rf Bash
 ```
+
+#### Méthode automatique (recommandée)
+```bash
+# Lancer le script de mise à jour
+sudo /usr/local/bin/ftp_video/update.sh
+
+# Vérifier les logs de mise à jour
+tail -f /var/log/ftp_telegram/ftp_telegram_$(date +%Y-%m-%d).log
+```
+
+Le script de mise à jour automatique :
+- Crée une sauvegarde des scripts existants
+- Met à jour depuis GitHub
+- Gère les permissions
+- Restaure la sauvegarde en cas d'erreur
 
 ## Licence
 Ce projet est sous licence GNU GPLv3 - voir le fichier [LICENSE](LICENSE) pour plus de détails.
