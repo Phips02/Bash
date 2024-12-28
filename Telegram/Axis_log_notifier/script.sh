@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Phips
-# Version : 2024.03.28 13:30
+# Version : 2024.03.28 14:25
 
 # Charger la configuration
 CONFIG_FILE="/etc/${PROJECT_NAME:-AxisLogNotifier}/config.cfg"
@@ -59,22 +59,105 @@ filter_new_alerts() {
     done <<< "$log_content"
 }
 
+# Fonction pour convertir les KB en format lisible
+format_memory() {
+    local kb=$1
+    if [ $kb -ge 1048576 ]; then # 1GB
+        echo "$(awk "BEGIN {printf \"%.1f\", $kb/1048576}")GB"
+    else
+        echo "$(awk "BEGIN {printf \"%.1f\", $kb/1024}")MB"
+    fi
+}
+
 # Fonction pour analyser les logs et extraire les problèmes
 analyze_logs() {
     local systemlog="$1"
     local serverreport="$2"
     local message=""
     
+    # En-tête avec date en premier
+    message+=$"🕒 <b>Date:</b> $(date '+%Y-%m-%d %H:%M')\n"
+    
+    # Informations d'identification de la caméra
+    local camera_model=$(grep "Product:" <<< "$serverreport" | sed 's/Product: AXIS \([^[:space:]]*\).*/\1/')
+    message+=$"🎥 <b>Modèle:</b> $(escape_html "$camera_model")\n"
+    
+    # Identification de la caméra (simplifié)
+    local camera_name=$(grep -m 1 "axis-" <<< "$systemlog" | awk '{print $2}')
+    message+=$"📸 $(escape_html "$camera_name")\n"
+    
+    # Adresse IP
+    local ip_address=$(grep "^IPAddress[[:space:]]*=" <<< "$serverreport" | grep -o '"[^"]*"' | sed 's/"//g' | head -n1)
+    message+=$"🌐 <b>IP:</b> $(escape_html "$ip_address")\n\n"
+    
+    # Spécifications techniques
+    local architecture=$(grep "^Architecture[[:space:]]*=" <<< "$serverreport" | grep -o '"[^"]*"' | sed 's/"//g')
+    local soc=$(grep "^Soc[[:space:]]*=" <<< "$serverreport" | grep -o '"[^"]*"' | sed 's/"//g')
+    message+=$"💻 <b>Architecture:</b> $(escape_html "$architecture")\n"
+    message+=$"🔲 <b>SoC:</b> $(escape_html "$soc")\n\n"
+    
+    # Applications installées
+    message+=$"📱 <b>Applications:</b>\n"
+    
+    # Extraire la section des applications
+    local apps_section=$(sed -n '/----- Uploaded applications -----/,/----- /p' <<< "$serverreport")
+    
+    # Parcourir chaque application
+    while IFS= read -r line; do
+        if [[ $line =~ ^Name:[[:space:]]*(.+)$ ]]; then
+            app_name="${BASH_REMATCH[1]}"
+        elif [[ $line =~ ^State:[[:space:]]*(.+)$ ]]; then
+            app_state="${BASH_REMATCH[1]}"
+            # Ajouter une icône en fonction de l'état
+            if [[ "${app_state,,}" == "running" ]]; then
+                message+=$"  ✅ ${app_name} (${app_state})\n"
+            else
+                message+=$"  ❌ ${app_name} (${app_state})\n"
+            fi
+        fi
+    done <<< "$apps_section"
+    
+    message+=$"\n"
+    
+    # Températures
+    message+=$"🌡️ <b>Températures:</b>\n"
+    
+    # Extraire la section des températures avec grep
+    local temp_lines=$(grep "^S[0-9], Current:" <<< "$serverreport")
+    
+    # Parcourir chaque ligne de température
+    while IFS= read -r line; do
+        if [[ -n "$line" ]]; then
+            local sensor=$(echo "$line" | cut -d',' -f1)
+            local current_temp=$(echo "$line" | grep -o 'Current: [0-9.]\+C' | cut -d' ' -f2)
+            local max_temp=$(echo "$line" | grep -o 'Percentiles:.*C' | awk '{print $NF}')
+            
+            # Extraire dynamiquement le nom du capteur depuis le serverreport
+            local sensor_name=$(grep -A1 "TemperatureControl.Sensor.${sensor}]" <<< "$serverreport" | grep "Name" | cut -d'"' -f2)
+            
+            # Si aucun nom n'est trouvé, utiliser l'ID du capteur
+            if [[ -z "$sensor_name" ]]; then
+                sensor_name="$sensor"
+            fi
+            
+            # Ajouter une icône en fonction de la température
+            if [[ -n "$current_temp" ]]; then
+                temp_value=$(echo "$current_temp" | sed 's/C//' | awk '{printf "%.0f", $1}')
+                if [ "$temp_value" -gt 60 ]; then
+                    message+=$"  🔴 ${sensor_name}: ${current_temp} (Max: ${max_temp})\n"
+                elif [ "$temp_value" -gt 50 ]; then
+                    message+=$"  🟡 ${sensor_name}: ${current_temp} (Max: ${max_temp})\n"
+                else
+                    message+=$"  🟢 ${sensor_name}: ${current_temp} (Max: ${max_temp})\n"
+                fi
+            fi
+        fi
+    done <<< "$temp_lines"
+    
+    message+=$"\n"
+    
     # Filtrer les nouvelles alertes
     local new_systemlog=$(filter_new_alerts "$systemlog")
-    
-    # En-tête
-    message+=$'🚨 <b>Alerte Caméra Axis</b>\n\n'
-    
-    # Identification de la caméra
-    local camera_name=$(grep -m 1 "axis-" <<< "$systemlog" | awk '{print $2}')
-    message+=$"📸 <b>Caméra:</b> $(escape_html "$camera_name")\n"
-    message+=$"🕒 <b>Date:</b> $(date '+%Y-%m-%d %H:%M')\n\n"
     
     # Analyse des erreurs système par niveau
     message+=$'⚠️ <b>Alertes Système:</b>\n\n'
@@ -122,7 +205,21 @@ analyze_logs() {
     
     # Uptime
     local uptime=$(grep "Total Uptime:" <<< "$serverreport" | awk '{print $3, $4}')
-    message+=$"• Uptime: $(escape_html "$uptime")\n\n"
+    message+=$"• Uptime: $(escape_html "$uptime")\n"
+    
+    # Mémoire
+    local mem_total=$(grep "MemTotal:" <<< "$serverreport" | awk '{print $2}')
+    local mem_available=$(grep "MemAvailable:" <<< "$serverreport" | awk '{print $2}')
+    local mem_used=$((mem_total - mem_available))
+    
+    local total_readable=$(format_memory $mem_total)
+    local used_readable=$(format_memory $mem_used)
+    local available_readable=$(format_memory $mem_available)
+    
+    message+=$"• Mémoire:\n"
+    message+=$"  - Utilisée: ${used_readable}\n"
+    message+=$"  - Libre: ${available_readable}\n"
+    message+=$"  - Totale: ${total_readable}\n"
     
     # Reboots et Restarts
     local reboots=$(grep "Boot-up Counter:" <<< "$serverreport" | awk '{print $3}')
