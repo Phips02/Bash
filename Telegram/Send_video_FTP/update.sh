@@ -104,7 +104,7 @@ if [[ "$response" =~ ^[oO]$ ]]; then
     print_log "INFO" "update" "Redémarrage du serveur..."
     sudo reboot
 else
-    print_log "WARNING" "update" "N'oubliez pas de redémarrer le serveur plus tard pour appliquer tous les changements"
+    print_log "WARNING" "update" "N'oubliez pas de redémarrer le serveur plus tard pour appliquer tous les changements."
 fi
 
 exit 0
