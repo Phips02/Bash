@@ -1,11 +1,5 @@
 #!/bin/bash
 
-#-FR---------------------------------------------
-#Pour executer automatiquement le script, ajouter le lien du script dans:
-#/etc/profile
-#Exemple : /usr/local/bin/notif_connexion/telegram.sh
-#------------------------------------------------
-
 # Vérification des dépendances
 if ! command -v jq &> /dev/null; then
     echo "Erreur : jq n'est pas installé"

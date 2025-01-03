@@ -50,7 +50,6 @@ CONFIG_DIR="/etc/telegram/notif_connexion"
 CONFIG_FILE="$CONFIG_DIR/telegram.config"
 FUNCTIONS_FILE="$BASE_DIR/telegram.functions.sh"
 SCRIPT_PATH="$BASE_DIR/telegram.sh"
-PROFILE_FILE="/etc/profile"
 
 # Création du répertoire de configuration si nécessaire
 mkdir -p "$CONFIG_DIR"

@@ -3,14 +3,14 @@
 ## Installation automatique
 
 ```bash
-# Si sudo n'est pas installé, connectez-vous en root
+# Se connecter en root
 su -
 
 # Installation des dépendances et du script
-apt update && apt install sudo curl wget jq git -y
+apt update && apt install curl wget jq git -y
 wget https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/install_telegram_notif.sh
 chmod +x install_telegram_notif.sh
-sudo ./install_telegram_notif.sh
+./install_telegram_notif.sh
 ```
 
 ## Structure des dossiers
@@ -28,21 +28,28 @@ sudo ./install_telegram_notif.sh
 ## Mise à jour
 
 ```bash
+# Se connecter en root
+su -
+
 # Télécharger le script de mise à jour
 cd /tmp
 wget https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/update_telegram_notif.sh
 chmod +x update_telegram_notif.sh
-sudo ./update_telegram_notif.sh
+./update_telegram_notif.sh
 ```
 
 ## Mise à jour manuelle
 ```bash
+# Se connecter en root
+su -
+
+# Télécharger le script de mise à jour
 cd /tmp
 rm -rf Bash
 git clone https://github.com/Phips02/Bash.git
 cd Bash/Telegram/Telegram\ -\ telegram_notif_v2
-sudo cp *.sh /usr/local/bin/telegram/notif_connexion/
-sudo chmod +x /usr/local/bin/telegram/notif_connexion/*.sh
+cp *.sh /usr/local/bin/telegram/notif_connexion/
+chmod +x /usr/local/bin/telegram/notif_connexion/*.sh
 cd /tmp
 rm -rf Bash
 ```
@@ -59,16 +66,19 @@ Cette licence :
 
 ## Désinstallation
 
-Pour désinstaller complètement le système de notification :
+Pour désinstaller complètement le système de notification (en tant que root) :
 
 ```bash
+# Se connecter en root
+su -
+
 # Supprimer la ligne dans /etc/bash.bashrc
-sudo sed -i '/telegram.sh/d' /etc/bash.bashrc
+sed -i '/telegram.sh/d' /etc/bash.bashrc
 
 # Supprimer les fichiers
-sudo rm -rf /etc/telegram/notif_connexion
-sudo rm -rf /usr/local/bin/telegram/notif_connexion
+rm -rf /etc/telegram/notif_connexion
+rm -rf /usr/local/bin/telegram/notif_connexion
 
 # Optionnel : Supprimer le groupe
-sudo groupdel telegramnotif
+groupdel telegramnotif
 ``` 
