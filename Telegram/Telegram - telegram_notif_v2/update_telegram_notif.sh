@@ -18,10 +18,8 @@ fi
 # Sauvegarder les informations importantes
 if [ -f "/etc/telegram/notif_connexion/telegram.config" ]; then
     # Récupérer les valeurs actuelles
-    CURRENT_TOKEN=$(grep "TELEGRAM_BOT_TOKEN=" /etc/telegram/notif_connexion/telegram.config | cut -d'"' -f2)
-    CURRENT_CHAT_ID=$(grep "TELEGRAM_CHAT_ID=" /etc/telegram/notif_connexion/telegram.config | cut -d'"' -f2)
-    CURRENT_HOSTNAME=$(hostname)
-    
+    export TELEGRAM_BOT_TOKEN=$(grep "TELEGRAM_BOT_TOKEN=" /etc/telegram/notif_connexion/telegram.config | cut -d'"' -f2)
+    export TELEGRAM_CHAT_ID=$(grep "TELEGRAM_CHAT_ID=" /etc/telegram/notif_connexion/telegram.config | cut -d'"' -f2)
     log_message "INFO" "Sauvegarde de la configuration existante..."
 else
     log_message "ERROR" "Configuration existante non trouvée. Installation requise."
@@ -46,31 +44,10 @@ for script in deploy_telegram.sh telegram.functions.sh telegram.sh; do
     chmod +x "${TMP_DIR}/${script}"
 done
 
-# Copier les scripts vers leur emplacement
-log_message "INFO" "Mise à jour des scripts..."
-cp "${TMP_DIR}"/*.sh /usr/local/bin/telegram/notif_connexion/
-
-# Recréer le fichier de configuration avec les valeurs existantes
-log_message "INFO" "Restauration de la configuration..."
-cat > /etc/telegram/notif_connexion/telegram.config <<EOF
-TELEGRAM_BOT_TOKEN="$CURRENT_TOKEN"
-TELEGRAM_CHAT_ID="$CURRENT_CHAT_ID"
-EOF
-
-# Réappliquer les permissions
-log_message "INFO" "Application des permissions..."
-chmod 755 /usr/local/bin/telegram/notif_connexion/*.sh
-chown root:telegramnotif /usr/local/bin/telegram/notif_connexion/*.sh
-chmod 644 /etc/telegram/notif_connexion/telegram.config
-chown root:telegramnotif /etc/telegram/notif_connexion/telegram.config
-
-# Test de l'installation
-log_message "INFO" "Test de la mise à jour..."
-if /usr/local/bin/telegram/notif_connexion/telegram.sh; then
-    log_message "SUCCESS" "Test réussi"
-else
-    log_message "WARNING" "Le test a échoué, vérifiez les permissions"
-fi
+# Exécuter le script de déploiement avec les variables exportées
+log_message "INFO" "Exécution du script de déploiement..."
+cd "$TMP_DIR"
+./deploy_telegram.sh
 
 # Nettoyage
 log_message "INFO" "Nettoyage..."

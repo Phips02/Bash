@@ -186,32 +186,38 @@ DATE=$(date "+%F %H:%M:%S")
 IP_DEVICE=$(hostname -I | cut -d " " -f1)
 MAC_ADDRESS=$(ip link show | grep ether | awk '{print $2}')
 
-# Fonction améliorée pour détecter l'IP source
+# Fonction améliorée pour détecter l'IP source et le type de connexion
 get_source_ip() {
-    # Vérifier d'abord SSH_CONNECTION qui est plus fiable
+    # Pour les connexions SSH directes
     if [ -n "$SSH_CONNECTION" ]; then
         echo "$SSH_CONNECTION" | awk '{print $1}'
         return
     fi
 
-    # Si on est dans une session su/sudo, récupérer l'IP de la session originale
-    if [ -n "$SUDO_USER" ] || [ -n "$SU_USER" ]; then
-        # Récupérer l'IP de la dernière connexion SSH active
-        local ssh_ip=$(netstat -tnp 2>/dev/null | grep 'ESTABLISHED.*sshd' | head -1 | awk '{split($5,a,":"); print a[1]}')
-        if [ -n "$ssh_ip" ]; then
-            echo "$ssh_ip"
-            return
-        fi
+    # Pour les sessions su/sudo, trouver la session SSH parente
+    local parent_ssh_ip=""
+    
+    # Vérifier si on est dans une session su
+    if [ -z "$SSH_CONNECTION" ] && [ "$TERM" != "unknown" ]; then
+        # Obtenir le PID du processus parent
+        local ppid=$PPID
+        while [ "$ppid" -ne 1 ]; do
+            # Vérifier si le processus parent est une session SSH
+            local parent_cmd=$(ps -o cmd= -p $ppid)
+            if [[ "$parent_cmd" == *"sshd"* ]]; then
+                parent_ssh_ip=$(ss -tnp | grep "$ppid" | awk '{print $3}' | cut -d':' -f1)
+                break
+            fi
+            # Remonter au processus parent suivant
+            ppid=$(ps -o ppid= -p $ppid)
+        done
     fi
 
-    # Si toujours rien, essayer who
-    local who_ip=$(who -m 2>/dev/null | awk '{print $(NF-1)}' | tr -d '()')
-    if [[ "$who_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        echo "$who_ip"
-        return
+    if [ -n "$parent_ssh_ip" ]; then
+        echo "$parent_ssh_ip"
+    else
+        echo "Indisponible"
     fi
-
-    echo "Indisponible"
 }
 
 # Récupération de l'IP source
@@ -311,3 +317,12 @@ fi
 
 # Uniformiser les permissions
 chmod 640 "$CONFIG_FILE"  # Une seule fois
+
+# Ajouter le script à /etc/bash.bashrc pour les connexions su
+if ! grep -q "$BASE_DIR/telegram.sh" /etc/bash.bashrc; then
+    echo "# Notification Telegram pour connexions su" >> /etc/bash.bashrc
+    echo "if [ -n \"\$PS1\" ]; then" >> /etc/bash.bashrc
+    echo "    $BASE_DIR/telegram.sh" >> /etc/bash.bashrc
+    echo "fi" >> /etc/bash.bashrc
+    log_message "INFO" "Script ajouté à /etc/bash.bashrc"
+fi
