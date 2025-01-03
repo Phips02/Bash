@@ -185,7 +185,15 @@ source /usr/local/bin/telegram/notif_connexion/telegram.functions.sh
 DATE=$(date "+%F %H:%M:%S")
 IP_DEVICE=$(hostname -I | cut -d " " -f1)
 MAC_ADDRESS=$(ip link show | grep ether | awk '{print $2}')
-IP_LOCAL=$(echo $SSH_CLIENT | cut -d " " -f1)
+
+# Amélioration de la détection de l'IP source
+if [ -n "$SSH_CLIENT" ]; then
+    IP_LOCAL=$(echo $SSH_CLIENT | awk '{print $1}')
+elif [ -n "$SSH_CONNECTION" ]; then
+    IP_LOCAL=$(echo $SSH_CONNECTION | awk '{print $1}')
+else
+    IP_LOCAL=$(who am i | awk '{print $NF}' | sed 's/[()]//g')
+fi
 
 # Récupération des informations publiques
 IPINFO=$(curl -s ipinfo.io)
@@ -197,9 +205,12 @@ if [ -z "$IP_PUBLIC" ]; then
     IP_PUBLIC="Indisponible"
 fi
 
-# Validation de l'IP locale
-if [ -z "$IP_LOCAL" ]; then
-    IP_LOCAL="Indisponible"
+# Validation de l'IP locale avec vérification plus robuste
+if [ -z "$IP_LOCAL" ] || [[ "$IP_LOCAL" == *":"* ]] || [[ "$IP_LOCAL" == *"no line"* ]]; then
+    IP_LOCAL=$(who -m | awk '{print $NF}' | tr -d '()')
+    if [ -z "$IP_LOCAL" ] || [[ "$IP_LOCAL" == *":"* ]]; then
+        IP_LOCAL="Indisponible"
+    fi
 fi
 
 # Construction du message de connexion
