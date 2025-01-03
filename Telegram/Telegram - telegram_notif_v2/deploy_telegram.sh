@@ -4,7 +4,7 @@
 # Version corrigée et fonctionnelle
 
 #Phips
-#Version : 2024.11.25 23:25
+#Version : 2025.01.03 19:37
 
 # Vérification que le script est exécuté en tant que root
 if [[ $EUID -ne 0 ]]; then
@@ -188,41 +188,26 @@ MAC_ADDRESS=$(ip link show | grep ether | awk '{print $2}')
 
 # Fonction améliorée pour détecter l'IP source
 get_source_ip() {
-    # Vérifier si on est dans une session SSH
-    if [ -n "$SSH_CLIENT" ]; then
-        echo "$SSH_CLIENT" | awk '{print $1}'
+    # Vérifier d'abord SSH_CONNECTION qui est plus fiable
+    if [ -n "$SSH_CONNECTION" ]; then
+        echo "$SSH_CONNECTION" | awk '{print $1}'
         return
     fi
 
-    # Si on est dans une session su, récupérer l'IP de la session SSH parente
-    if [ -n "$SUDO_USER" ] || [ "$PAM_TYPE" = "open_session" ]; then
-        # Récupérer le PID parent
-        PPID=$(ps -o ppid= -p $$)
-        # Remonter l'arbre des processus jusqu'à trouver sshd
-        while [ -n "$PPID" ] && [ "$PPID" -ne 1 ]; do
-            CMD=$(ps -o comm= -p $PPID)
-            if [[ "$CMD" == *"sshd"* ]]; then
-                # Trouver l'IP associée à ce processus sshd
-                IP=$(lsof -i -n -P -p $PPID | grep -i 'established' | awk '{print $9}' | cut -d'>' -f2 | cut -d':' -f1)
-                if [ -n "$IP" ]; then
-                    echo "$IP"
-                    return
-                fi
-            fi
-            PPID=$(ps -o ppid= -p $PPID)
-        done
+    # Si on est dans une session su/sudo, récupérer l'IP de la session originale
+    if [ -n "$SUDO_USER" ] || [ -n "$SU_USER" ]; then
+        # Récupérer l'IP de la dernière connexion SSH active
+        local ssh_ip=$(netstat -tnp 2>/dev/null | grep 'ESTABLISHED.*sshd' | head -1 | awk '{split($5,a,":"); print a[1]}')
+        if [ -n "$ssh_ip" ]; then
+            echo "$ssh_ip"
+            return
+        fi
     fi
 
-    # Si aucune IP n'est trouvée, essayer d'autres méthodes
-    local w_ip=$(w -h | grep -v "^$USER" | head -1 | awk '{print $3}')
-    if [ -n "$w_ip" ] && [[ "$w_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        echo "$w_ip"
-        return
-    fi
-
-    local last_ip=$(last -i | grep -v "^$USER" | head -1 | awk '{print $3}')
-    if [ -n "$last_ip" ] && [[ "$last_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        echo "$last_ip"
+    # Si toujours rien, essayer who
+    local who_ip=$(who -m 2>/dev/null | awk '{print $(NF-1)}' | tr -d '()')
+    if [[ "$who_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "$who_ip"
         return
     fi
 
