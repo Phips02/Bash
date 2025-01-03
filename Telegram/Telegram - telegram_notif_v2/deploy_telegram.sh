@@ -98,6 +98,9 @@ while true; do
                     sed -i "s/$current_hostname/$new_hostname/g" /etc/hosts
                     # Application immédiate du nouveau hostname
                     hostnamectl set-hostname "$new_hostname"
+                    # Mettre à jour la variable HOSTNAME pour les messages
+                    HOSTNAME=$new_hostname
+                    export HOSTNAME
                     log_message "SUCCESS" "Hostname modifié avec succès : $new_hostname"
                     log_message "INFO" "Une sauvegarde de l'ancien hostname a été créée : /etc/hostname.bak"
                     break
@@ -109,6 +112,7 @@ while true; do
             ;;
         [nN]*)
             log_message "INFO" "Conservation du hostname actuel : $current_hostname"
+            HOSTNAME=$current_hostname
             break
             ;;
         *)
@@ -116,6 +120,9 @@ while true; do
             ;;
     esac
 done
+
+# Attendre que le changement de hostname soit effectif
+sleep 2
 
 # Test de connexion à l'API Telegram
 log_message "INFO" "Test de connexion à l'API Telegram..."
