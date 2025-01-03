@@ -187,13 +187,38 @@ IP_DEVICE=$(hostname -I | cut -d " " -f1)
 MAC_ADDRESS=$(ip link show | grep ether | awk '{print $2}')
 
 # Amélioration de la détection de l'IP source
-if [ -n "$SSH_CLIENT" ]; then
-    IP_LOCAL=$(echo $SSH_CLIENT | awk '{print $1}')
-elif [ -n "$SSH_CONNECTION" ]; then
-    IP_LOCAL=$(echo $SSH_CONNECTION | awk '{print $1}')
-else
-    IP_LOCAL=$(who am i | awk '{print $NF}' | sed 's/[()]//g')
-fi
+get_source_ip() {
+    # Essai avec SSH_CLIENT
+    if [ -n "$SSH_CLIENT" ]; then
+        echo "$SSH_CLIENT" | awk '{print $1}'
+        return
+    fi
+    
+    # Essai avec SSH_CONNECTION
+    if [ -n "$SSH_CONNECTION" ]; then
+        echo "$SSH_CONNECTION" | awk '{print $1}'
+        return
+    fi
+    
+    # Essai avec w
+    local w_ip=$(w -h | grep -v "^$USER" | head -1 | awk '{print $3}')
+    if [ -n "$w_ip" ]; then
+        echo "$w_ip"
+        return
+    fi
+    
+    # Essai avec last
+    local last_ip=$(last -i | grep -v "^$USER" | head -1 | awk '{print $3}')
+    if [ -n "$last_ip" ] && [[ "$last_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "$last_ip"
+        return
+    fi
+    
+    echo "Indisponible"
+}
+
+# Récupération de l'IP source
+IP_LOCAL=$(get_source_ip)
 
 # Récupération des informations publiques
 IPINFO=$(curl -s ipinfo.io)
@@ -203,14 +228,6 @@ COUNTRY=$(echo "$IPINFO" | jq -r '.country')
 # Validation des informations récupérées
 if [ -z "$IP_PUBLIC" ]; then
     IP_PUBLIC="Indisponible"
-fi
-
-# Validation de l'IP locale avec vérification plus robuste
-if [ -z "$IP_LOCAL" ] || [[ "$IP_LOCAL" == *":"* ]] || [[ "$IP_LOCAL" == *"no line"* ]]; then
-    IP_LOCAL=$(who -m | awk '{print $NF}' | tr -d '()')
-    if [ -z "$IP_LOCAL" ] || [[ "$IP_LOCAL" == *":"* ]]; then
-        IP_LOCAL="Indisponible"
-    fi
 fi
 
 # Construction du message de connexion
