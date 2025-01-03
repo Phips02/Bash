@@ -56,7 +56,9 @@ export TELEGRAM_CHAT_ID
 
 # Exécution du script de déploiement
 log_message "INFO" "Lancement du script de déploiement..."
-"${TMP_DIR}/deploy_telegram.sh"
+cd "$TMP_DIR"
+chmod +x deploy_telegram.sh
+./deploy_telegram.sh "$TELEGRAM_BOT_TOKEN" "$TELEGRAM_CHAT_ID"
 
 # Nettoyage
 log_message "INFO" "Nettoyage..."
