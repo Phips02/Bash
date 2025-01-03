@@ -6,7 +6,7 @@
 #Exemple : /usr/local/bin/notif_connexion/telegram.sh
 #------------------------------------------------
 
-source /usr/local/bin/notif_connexion/telegram.functions.sh
+source /usr/local/bin/telegram/notif_connexion/telegram.functions.sh
 
 # Récupération des informations système
 DATE=$(date "+%F %H:%M:%S")

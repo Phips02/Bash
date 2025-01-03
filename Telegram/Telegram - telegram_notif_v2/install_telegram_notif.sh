@@ -27,7 +27,7 @@ TELEGRAM_BOT_TOKEN="$1"
 TELEGRAM_CHAT_ID="$2"
 
 # URL du dépôt (à modifier selon votre dépôt)
-REPO_URL="https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/telegram_notif_v2"
+REPO_URL="https://raw.githubusercontent.com/Phips02/Bash/main/Telegram%20-%20telegram_notif_v2"
 
 # Création du dossier temporaire
 TMP_DIR=$(mktemp -d)

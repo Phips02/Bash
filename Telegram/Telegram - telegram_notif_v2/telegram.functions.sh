@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Charger les identifiants depuis le fichier de configuration
-source /etc/telegram/notif_connexion/telegram.credentials.sh
+source /etc/telegram/notif_connexion/telegram.config
 
 API="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}"
 

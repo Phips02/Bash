@@ -5,7 +5,7 @@
 ### 1. Installation en une ligne
 ```bash
 # Installation avec TOKEN et CHAT_ID en arguments
-wget -O - https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/telegram_notif_v2/install_telegram_notif.sh | sudo bash -s -- "VOTRE_TOKEN" "VOTRE_CHAT_ID"
+wget -O - https://raw.githubusercontent.com/Phips02/Bash/main/Telegram%20-%20telegram_notif_v2/install_telegram_notif.sh | sudo bash -s -- "VOTRE_TOKEN" "VOTRE_CHAT_ID"
 ```
 
 ### 2. Installation manuelle du script d'installation
