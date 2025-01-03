@@ -21,20 +21,22 @@ apt update && apt install sudo -y
 wget https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/install_telegram_notif.sh
 chmod +x install_telegram_notif.sh
 
-# Deux options d'installation :
-# Option 1 : Installation interactive (recommandée)
-sudo ./install_telegram_notif.sh
-
-# Option 2 : Installation avec arguments
+# Installation avec les arguments obligatoires :
 sudo ./install_telegram_notif.sh "VOTRE_TOKEN" "VOTRE_CHAT_ID"
+
+# Exemple avec des valeurs réelles :
+sudo ./install_telegram_notif.sh "5496243414:AAHasBYvaODk2_j0S9atwuw9jN0ODop3BeI" "499873948"
 ```
 
 ### 2. Après l'installation
 ```bash
-# Vérifier les permissions
+# Vérifier et corriger les permissions si nécessaire
 sudo chmod 755 /usr/local/bin/telegram/notif_connexion/telegram.sh
 sudo chmod 755 /usr/local/bin/telegram/notif_connexion/telegram.functions.sh
 sudo chown root:telegramnotif /usr/local/bin/telegram/notif_connexion/*.sh
+
+# Ajouter l'utilisateur courant au groupe telegramnotif
+sudo usermod -a -G telegramnotif $USER
 
 # Tester l'installation
 sudo /usr/local/bin/telegram/notif_connexion/telegram.sh
