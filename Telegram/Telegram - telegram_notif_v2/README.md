@@ -22,7 +22,7 @@ sudo ./install_telegram_notif.sh
 ├── telegram.functions.sh        # Fonctions Telegram
 └── telegram.sh                  # Script principal
 
-/etc/profile                     # Configuration système pour l'exécution automatique
+/etc/bash.bashrc                 # Configuration système pour l'exécution automatique
 ```
 
 ## Mise à jour
@@ -62,8 +62,8 @@ Cette licence :
 Pour désinstaller complètement le système de notification :
 
 ```bash
-# Supprimer la ligne dans /etc/profile
-sudo sed -i '/telegram.sh/d' /etc/profile
+# Supprimer la ligne dans /etc/bash.bashrc
+sudo sed -i '/telegram.sh/d' /etc/bash.bashrc
 
 # Supprimer les fichiers
 sudo rm -rf /etc/telegram/notif_connexion
