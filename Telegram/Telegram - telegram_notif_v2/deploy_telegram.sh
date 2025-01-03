@@ -79,6 +79,44 @@ if [ -z "$TELEGRAM_CHAT_ID" ]; then
     done
 fi
 
+# Affichage et modification potentielle du hostname
+current_hostname=$(hostname)
+log_message "INFO" "Hostname actuel du serveur : $current_hostname"
+
+while true; do
+    read -p "Voulez-vous modifier le hostname ? (o/n) : " change_hostname
+    case $change_hostname in
+        [oO]*)
+            while true; do
+                read -p "Entrez le nouveau hostname : " new_hostname
+                if [[ $new_hostname =~ ^[a-zA-Z0-9-]+$ ]]; then
+                    # Sauvegarde de l'ancien hostname
+                    cp /etc/hostname /etc/hostname.bak
+                    # Modification du hostname
+                    echo "$new_hostname" > /etc/hostname
+                    # Mise à jour du fichier hosts
+                    sed -i "s/$current_hostname/$new_hostname/g" /etc/hosts
+                    # Application immédiate du nouveau hostname
+                    hostnamectl set-hostname "$new_hostname"
+                    log_message "SUCCESS" "Hostname modifié avec succès : $new_hostname"
+                    log_message "INFO" "Une sauvegarde de l'ancien hostname a été créée : /etc/hostname.bak"
+                    break
+                else
+                    log_message "ERROR" "Format de hostname invalide. Utilisez uniquement des lettres, chiffres et tirets."
+                fi
+            done
+            break
+            ;;
+        [nN]*)
+            log_message "INFO" "Conservation du hostname actuel : $current_hostname"
+            break
+            ;;
+        *)
+            log_message "ERROR" "Répondez par 'o' pour oui ou 'n' pour non."
+            ;;
+    esac
+done
+
 # Test de connexion à l'API Telegram
 log_message "INFO" "Test de connexion à l'API Telegram..."
 if ! curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getMe" | grep -q "\"ok\":true"; then
