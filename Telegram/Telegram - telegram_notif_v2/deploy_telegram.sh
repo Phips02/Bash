@@ -186,34 +186,46 @@ DATE=$(date "+%F %H:%M:%S")
 IP_DEVICE=$(hostname -I | cut -d " " -f1)
 MAC_ADDRESS=$(ip link show | grep ether | awk '{print $2}')
 
-# Amélioration de la détection de l'IP source
+# Fonction améliorée pour détecter l'IP source
 get_source_ip() {
-    # Essai avec SSH_CLIENT
+    # Vérifier si on est dans une session SSH
     if [ -n "$SSH_CLIENT" ]; then
         echo "$SSH_CLIENT" | awk '{print $1}'
         return
     fi
-    
-    # Essai avec SSH_CONNECTION
-    if [ -n "$SSH_CONNECTION" ]; then
-        echo "$SSH_CONNECTION" | awk '{print $1}'
-        return
+
+    # Si on est dans une session su, récupérer l'IP de la session SSH parente
+    if [ -n "$SUDO_USER" ] || [ "$PAM_TYPE" = "open_session" ]; then
+        # Récupérer le PID parent
+        PPID=$(ps -o ppid= -p $$)
+        # Remonter l'arbre des processus jusqu'à trouver sshd
+        while [ -n "$PPID" ] && [ "$PPID" -ne 1 ]; do
+            CMD=$(ps -o comm= -p $PPID)
+            if [[ "$CMD" == *"sshd"* ]]; then
+                # Trouver l'IP associée à ce processus sshd
+                IP=$(lsof -i -n -P -p $PPID | grep -i 'established' | awk '{print $9}' | cut -d'>' -f2 | cut -d':' -f1)
+                if [ -n "$IP" ]; then
+                    echo "$IP"
+                    return
+                fi
+            fi
+            PPID=$(ps -o ppid= -p $PPID)
+        done
     fi
-    
-    # Essai avec w
+
+    # Si aucune IP n'est trouvée, essayer d'autres méthodes
     local w_ip=$(w -h | grep -v "^$USER" | head -1 | awk '{print $3}')
-    if [ -n "$w_ip" ]; then
+    if [ -n "$w_ip" ] && [[ "$w_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         echo "$w_ip"
         return
     fi
-    
-    # Essai avec last
+
     local last_ip=$(last -i | grep -v "^$USER" | head -1 | awk '{print $3}')
     if [ -n "$last_ip" ] && [[ "$last_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         echo "$last_ip"
         return
     fi
-    
+
     echo "Indisponible"
 }
 
@@ -244,7 +256,6 @@ User : $USER"
 
 # Envoi du message de connexion
 telegram_text_send "$TEXT"
-
 EOF
 
 chmod +x "$SCRIPT_PATH"
