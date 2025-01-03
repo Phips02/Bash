@@ -265,13 +265,17 @@ if [ -f "$PROFILE_FILE" ]; then
     log_message "INFO" "Backup de ${PROFILE_FILE} créé"
 fi
 
-# Ajout plus sécurisé dans /etc/profile
-if ! grep -q "$SCRIPT_PATH" "$PROFILE_FILE"; then
-    echo "# Notification Telegram pour connexions SSH" >> "$PROFILE_FILE"
-    echo "$SCRIPT_PATH" >> "$PROFILE_FILE"
-    log_message "SUCCESS" "Script ajouté à /etc/profile"
-else
-    log_message "INFO" "Le script est déjà présent dans /etc/profile"
+# Ajouter le script dans /etc/bash.bashrc
+if ! grep -q "$BASE_DIR/telegram.sh" /etc/bash.bashrc; then
+    log_message "INFO" "Ajout du script dans /etc/bash.bashrc..."
+    cat >> /etc/bash.bashrc <<EOL
+
+# Notification Telegram pour connexions SSH et su
+if [ -n "\$PS1" ] && [ "\$TERM" != "unknown" ]; then
+    $BASE_DIR/telegram.sh
+fi
+EOL
+    log_message "SUCCESS" "Script ajouté à /etc/bash.bashrc"
 fi
 
 # Suppression du script de déploiement
@@ -317,12 +321,3 @@ fi
 
 # Uniformiser les permissions
 chmod 640 "$CONFIG_FILE"  # Une seule fois
-
-# Ajouter le script à /etc/bash.bashrc pour les connexions su
-if ! grep -q "$BASE_DIR/telegram.sh" /etc/bash.bashrc; then
-    echo "# Notification Telegram pour connexions su" >> /etc/bash.bashrc
-    echo "if [ -n \"\$PS1\" ]; then" >> /etc/bash.bashrc
-    echo "    $BASE_DIR/telegram.sh" >> /etc/bash.bashrc
-    echo "fi" >> /etc/bash.bashrc
-    log_message "INFO" "Script ajouté à /etc/bash.bashrc"
-fi
