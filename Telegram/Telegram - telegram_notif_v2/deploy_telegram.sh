@@ -55,25 +55,29 @@ PROFILE_FILE="/etc/profile"
 # Création du répertoire de configuration si nécessaire
 mkdir -p "$CONFIG_DIR"
 
-# Validation du TOKEN Telegram
-while true; do
-    read -p "Entrez votre TOKEN Telegram : " TELEGRAM_BOT_TOKEN
-    if [[ $TELEGRAM_BOT_TOKEN =~ ^[0-9]+:[a-zA-Z0-9_-]+$ ]]; then
-        break
-    else
-        log_message "ERROR" "Format de TOKEN invalide. Format attendu: 123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-    fi
-done
+# Validation du TOKEN Telegram (seulement si pas fourni en argument)
+if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
+    while true; do
+        read -p "Entrez votre TOKEN Telegram : " TELEGRAM_BOT_TOKEN
+        if [[ $TELEGRAM_BOT_TOKEN =~ ^[0-9]+:[a-zA-Z0-9_-]+$ ]]; then
+            break
+        else
+            log_message "ERROR" "Format de TOKEN invalide. Format attendu: 123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+        fi
+    done
+fi
 
-# Validation du Chat ID
-while true; do
-    read -p "Entrez votre Chat ID Telegram : " TELEGRAM_CHAT_ID
-    if [[ $TELEGRAM_CHAT_ID =~ ^-?[0-9]+$ ]]; then
-        break
-    else
-        log_message "ERROR" "Format de Chat ID invalide. Doit être un nombre."
-    fi
-done
+# Validation du Chat ID (seulement si pas fourni en argument)
+if [ -z "$TELEGRAM_CHAT_ID" ]; then
+    while true; do
+        read -p "Entrez votre Chat ID Telegram : " TELEGRAM_CHAT_ID
+        if [[ $TELEGRAM_CHAT_ID =~ ^-?[0-9]+$ ]]; then
+            break
+        else
+            log_message "ERROR" "Format de Chat ID invalide. Doit être un nombre."
+        fi
+    done
+fi
 
 # Test de connexion à l'API Telegram
 log_message "INFO" "Test de connexion à l'API Telegram..."

@@ -20,7 +20,7 @@ apt update && apt install sudo curl wget jq git -y
 # Téléchargement et installation
 wget https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/install_telegram_notif.sh
 chmod +x install_telegram_notif.sh
-sudo ./install_telegram_notif.sh <TELEGRAM_BOT_TOKEN> <TELEGRAM_CHAT_ID>
+sudo ./install_telegram_notif.sh
 ```
 
 ### 2. Configuration des permissions

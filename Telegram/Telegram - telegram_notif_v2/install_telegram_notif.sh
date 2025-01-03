@@ -16,21 +16,11 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-# Création du groupe telegramnotif si non existant
+# Création du groupe telegramnotif
 if ! getent group telegramnotif > /dev/null; then
     groupadd telegramnotif
     log_message "INFO" "Groupe telegramnotif créé"
 fi
-
-# Vérification des arguments
-if [ "$#" -ne 2 ]; then
-    log_message "ERROR" "Usage: $0 <TELEGRAM_BOT_TOKEN> <TELEGRAM_CHAT_ID>"
-    log_message "INFO" "Exemple: $0 123456789:ABCdefGHIjklMNOpqrsTUVwxyz -123456789"
-    exit 1
-fi
-
-TELEGRAM_BOT_TOKEN="$1"
-TELEGRAM_CHAT_ID="$2"
 
 # URL du dépôt
 REPO_URL="https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2"
@@ -50,15 +40,11 @@ for script in deploy_telegram.sh telegram.functions.sh telegram.sh; do
     chmod +x "${TMP_DIR}/${script}"
 done
 
-# Export des variables pour le script de déploiement
-export TELEGRAM_BOT_TOKEN
-export TELEGRAM_CHAT_ID
-
 # Exécution du script de déploiement
 log_message "INFO" "Lancement du script de déploiement..."
 cd "$TMP_DIR"
 chmod +x deploy_telegram.sh
-./deploy_telegram.sh "$TELEGRAM_BOT_TOKEN" "$TELEGRAM_CHAT_ID"
+./deploy_telegram.sh
 
 # Nettoyage
 log_message "INFO" "Nettoyage..."
