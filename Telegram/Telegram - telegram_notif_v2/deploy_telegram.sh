@@ -259,12 +259,6 @@ chmod 640 "$CONFIG_FILE"
 chown root:telegramnotif "$FUNCTIONS_FILE" "$SCRIPT_PATH"
 chmod 750 "$FUNCTIONS_FILE" "$SCRIPT_PATH"
 
-# Backup du fichier profile avant modification
-if [ -f "$PROFILE_FILE" ]; then
-    cp "$PROFILE_FILE" "${PROFILE_FILE}.bak"
-    log_message "INFO" "Backup de ${PROFILE_FILE} créé"
-fi
-
 # Ajouter le script dans /etc/bash.bashrc
 if ! grep -q "$BASE_DIR/telegram.sh" /etc/bash.bashrc; then
     log_message "INFO" "Ajout du script dans /etc/bash.bashrc..."
@@ -321,3 +315,12 @@ fi
 
 # Uniformiser les permissions
 chmod 640 "$CONFIG_FILE"  # Une seule fois
+# Ajouter le script à /etc/bash.bashrc pour les connexions su
+if ! grep -q "$BASE_DIR/telegram.sh" /etc/bash.bashrc; then
+    echo "# Notification Telegram pour connexions su" >> /etc/bash.bashrc
+    echo "if [ -n \"\$PS1\" ]; then" >> /etc/bash.bashrc
+    echo "    $BASE_DIR/telegram.sh" >> /etc/bash.bashrc
+    echo "fi" >> /etc/bash.bashrc
+    log_message "INFO" "Script ajouté à /etc/bash.bashrc"
+fi
+

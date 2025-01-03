@@ -69,13 +69,6 @@ if [ -n "$SUDO_USER" ]; then
     log_message "INFO" "Utilisateur $SUDO_USER ajouté au groupe telegramnotif"
 fi
 
-# Vérification de la présence dans /etc/profile
-if ! grep -q "$BASE_DIR/telegram.sh" /etc/profile; then
-    echo "# Notification Telegram pour connexions SSH" >> /etc/profile
-    echo "$BASE_DIR/telegram.sh" >> /etc/profile
-    log_message "INFO" "Script ajouté à /etc/profile"
-fi
-
 # Test de l'installation
 log_message "INFO" "Test de l'installation..."
 if "$BASE_DIR/telegram.sh"; then
