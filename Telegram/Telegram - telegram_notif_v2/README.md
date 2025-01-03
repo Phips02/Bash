@@ -25,6 +25,16 @@ sudo ./install_telegram_notif.sh
 /etc/profile                     # Configuration système pour l'exécution automatique
 ```
 
+## Mise à jour
+
+```bash
+# Télécharger le script de mise à jour
+cd /tmp
+wget https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/update_telegram_notif.sh
+chmod +x update_telegram_notif.sh
+sudo ./update_telegram_notif.sh
+```
+
 ## Mise à jour manuelle
 ```bash
 cd /tmp
