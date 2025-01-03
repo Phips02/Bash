@@ -1,22 +1,38 @@
 # Système de notification Telegram pour connexions SSH
 
+## Prérequis
+```bash
+# Installation des dépendances essentielles
+apt update
+apt install sudo curl wget jq git -y
+```
+
 ## Installation automatique
 
 ### 1. Installation en une ligne
 ```bash
-# Installation avec TOKEN et CHAT_ID en arguments
-wget -O - https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/install_telegram_notif.sh | sudo bash -s -- "VOTRE_TOKEN" "VOTRE_CHAT_ID"
+# Si sudo n'est pas installé, connectez-vous d'abord en root avec :
+su -
+
+# Puis installez sudo :
+apt update && apt install sudo -y
+
+# Ensuite, procédez à l'installation avec TOKEN et CHAT_ID :
+wget https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/install_telegram_notif.sh
+chmod +x install_telegram_notif.sh
+sudo ./install_telegram_notif.sh "VOTRE_TOKEN" "VOTRE_CHAT_ID"
 ```
 
 ### 2. Installation manuelle du script d'installation
 ```bash
-# Télécharger le script d'installation
+# Si vous n'êtes pas root et que sudo n'est pas installé :
+su -
+apt update && apt install sudo -y
+exit  # Retour à votre utilisateur normal
+
+# Télécharger et installer le script
 wget https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/install_telegram_notif.sh
-
-# Rendre le script exécutable
 chmod +x install_telegram_notif.sh
-
-# Exécuter le script avec vos identifiants Telegram
 sudo ./install_telegram_notif.sh "VOTRE_TOKEN" "VOTRE_CHAT_ID"
 ```
 
