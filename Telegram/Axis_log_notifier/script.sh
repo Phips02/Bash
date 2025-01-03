@@ -86,9 +86,9 @@ analyze_logs() {
     local camera_name=$(grep -m 1 "axis-" <<< "$systemlog" | awk '{print $2}')
     message+=$"📸 $(escape_html "$camera_name")\n"
     
-    # Adresse IP
-    local ip_address=$(grep "^IPAddress[[:space:]]*=" <<< "$serverreport" | grep -o '"[^"]*"' | sed 's/"//g' | head -n1)
-    message+=$"🌐 <b>IP:</b> $(escape_html "$ip_address")\n\n"
+    # Adresse IP (correction)
+    local ip_address=$(grep -A4 "\[Network.eth0\]" <<< "$serverreport" | grep "IPAddress" | cut -d'"' -f2)
+    message+=$"🌐 <b>IP:</b> $(escape_html "${ip_address:-N/A}")\n\n"
     
     # Spécifications techniques
     local architecture=$(grep "^Architecture[[:space:]]*=" <<< "$serverreport" | grep -o '"[^"]*"' | sed 's/"//g')
@@ -127,7 +127,7 @@ analyze_logs() {
     
     # Parcourir chaque ligne de température
     while IFS= read -r line; do
-        if [[ -n "$line" ]]; then
+        if [ -n "$line" ]; then
             local sensor=$(echo "$line" | cut -d',' -f1)
             local current_temp=$(echo "$line" | grep -o 'Current: [0-9.]\+C' | cut -d' ' -f2)
             local max_temp=$(echo "$line" | grep -o 'Percentiles:.*C' | awk '{print $NF}')
@@ -136,13 +136,11 @@ analyze_logs() {
             local sensor_name=$(grep -A1 "TemperatureControl.Sensor.${sensor}]" <<< "$serverreport" | grep "Name" | cut -d'"' -f2)
             
             # Si aucun nom n'est trouvé, utiliser l'ID du capteur
-            if [[ -z "$sensor_name" ]]; then
-                sensor_name="$sensor"
-            fi
+            [ -z "$sensor_name" ] && sensor_name="$sensor"
             
             # Ajouter une icône en fonction de la température
-            if [[ -n "$current_temp" ]]; then
-                temp_value=$(echo "$current_temp" | sed 's/C//' | awk '{printf "%.0f", $1}')
+            if [ -n "$current_temp" ]; then
+                local temp_value=$(echo "$current_temp" | sed 's/C//' | awk '{print int($1)}')
                 if [ "$temp_value" -gt 60 ]; then
                     message+=$"  🔴 ${sensor_name}: ${current_temp} (Max: ${max_temp})\n"
                 elif [ "$temp_value" -gt 50 ]; then
@@ -156,56 +154,31 @@ analyze_logs() {
     
     message+=$"\n"
     
-    # Filtrer les nouvelles alertes
-    local new_systemlog=$(filter_new_alerts "$systemlog")
-    
-    # Analyse des erreurs système par niveau
-    message+=$'⚠️ <b>Alertes Système:</b>\n\n'
-    
-    # WARNING
-    local warning_alerts=$(grep -E "\[ *WARNING *\]" <<< "$new_systemlog" | tail -n 5)
-    if [ -n "$warning_alerts" ]; then
-        message+=$"💡 <b>WARNING</b>\n"
-        message+=$"Détail des 5 derniers warnings:\n"
-        while IFS= read -r line; do
-            local simplified=$(simplify_error "$line")
-            message+=$"• $(escape_html "$simplified")\n\n"
-        done <<< "$warning_alerts"
-    else
-        message+=$"💡 <b>WARNING</b> => ✅ Aucune alerte\n"
+    # Statut du chauffage
+    message+=$"🔥 <b>Chauffage:</b>\n"
+    local heater_status=$(grep "^Heater H" <<< "$serverreport")
+    if [ -n "$heater_status" ]; then
+        if [[ "$heater_status" =~ "Running" ]]; then
+            message+=$"  ♨️ ${heater_status##*Heater }\n"
+        else
+            message+=$"  ❄️ ${heater_status##*Heater }\n"
+        fi
     fi
+    message+=$"\n"
     
-    # ERROR
-    if grep -q "\[ *ERROR *\]" <<< "$new_systemlog"; then
-        local error_count=$(grep -c "\[ *ERROR *\]" <<< "$new_systemlog")
-        message+=$"🟠 <b>ERROR</b> => ⚠️ $error_count nouvelle(s) erreur(s)\n"
-    else
-        message+=$"🟠 <b>ERROR</b> => ✅ Aucune alerte\n"
-    fi
-    
-    # CRITICAL
-    if grep -q "\[ *CRITICAL *\]" <<< "$new_systemlog"; then
-        local critical_count=$(grep -c "\[ *CRITICAL *\]" <<< "$new_systemlog")
-        message+=$"🔴 <b>CRITICAL</b> => ⚠️ $critical_count nouvelle(s) erreur(s) critique(s)\n"
-    else
-        message+=$"🔴 <b>CRITICAL</b> => ✅ Aucune alerte\n"
-    fi
-    
-    # FATAL
-    if grep -q "\[ *FATAL *\]" <<< "$new_systemlog"; then
-        local fatal_count=$(grep -c "\[ *FATAL *\]" <<< "$new_systemlog")
-        message+=$"❌ <b>FATAL</b> => ⚠️ $fatal_count nouvelle(s) erreur(s) fatale(s)\n"
-    else
-        message+=$"❌ <b>FATAL</b> => ✅ Aucune alerte\n"
-    fi
-    message+=$'\n'
-    
-    # État du système (simplifié)
-    message+=$'🔍 <b>État du Système:</b>\n'
+    # État du système
+    message+=$"🔍 <b>État du Système:</b>\n"
     
     # Uptime
     local uptime=$(grep "Total Uptime:" <<< "$serverreport" | awk '{print $3, $4}')
-    message+=$"• Uptime: $(escape_html "$uptime")\n"
+    message+=$"• Uptime total: $(escape_html "$uptime")\n\n"
+    
+    # Reboots et Restarts
+    local reboots=$(grep "Boot-up Counter:" <<< "$serverreport" | awk '{print $3}')
+    local restarts=$(grep "Restart Counter:" <<< "$serverreport" | awk '{print $3}')
+    message+=$"• Redémarrages:\n"
+    message+=$"  - Hard: ${reboots}\n"
+    message+=$"  - Soft: ${restarts}\n\n"
     
     # Mémoire
     local mem_total=$(grep "MemTotal:" <<< "$serverreport" | awk '{print $2}')
@@ -216,15 +189,12 @@ analyze_logs() {
     local used_readable=$(format_memory $mem_used)
     local available_readable=$(format_memory $mem_available)
     
-    message+=$"• Mémoire:\n"
+    message+=$"• Mémoire RAM:\n"
     message+=$"  - Utilisée: ${used_readable}\n"
     message+=$"  - Libre: ${available_readable}\n"
     message+=$"  - Totale: ${total_readable}\n"
     
-    # Reboots et Restarts
-    local reboots=$(grep "Boot-up Counter:" <<< "$serverreport" | awk '{print $3}')
-    local restarts=$(grep "Restart Counter:" <<< "$serverreport" | awk '{print $3}')
-    message+=$"• Boot: $(escape_html "$reboots") / Soft: $(escape_html "$restarts")\n"
+
     
     echo -e "$message"
 }
