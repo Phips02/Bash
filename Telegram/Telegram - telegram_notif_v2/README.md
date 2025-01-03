@@ -5,13 +5,13 @@
 ### 1. Installation en une ligne
 ```bash
 # Installation avec TOKEN et CHAT_ID en arguments
-wget -O - https://raw.githubusercontent.com/Phips02/Bash/main/Telegram%20-%20telegram_notif_v2/install_telegram_notif.sh | sudo bash -s -- "VOTRE_TOKEN" "VOTRE_CHAT_ID"
+wget -O - https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/install_telegram_notif.sh | sudo bash -s -- "VOTRE_TOKEN" "VOTRE_CHAT_ID"
 ```
 
 ### 2. Installation manuelle du script d'installation
 ```bash
 # Télécharger le script d'installation
-wget https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/telegram_notif_v2/install_telegram_notif.sh
+wget https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/install_telegram_notif.sh
 
 # Rendre le script exécutable
 chmod +x install_telegram_notif.sh
@@ -86,7 +86,7 @@ pwd  # Devrait afficher /home/telegram
 ```bash
 # Cloner le dépôt
 git clone https://github.com/Phips02/Bash.git
-cd Bash/Telegram/telegram_notif_v2
+cd Bash/Telegram/Telegram\ -\ telegram_notif_v2
 
 # Créer les dossiers nécessaires
 sudo mkdir -p /etc/telegram/notif_connexion
@@ -165,7 +165,7 @@ sudo sed -i 's/^#\/usr\/local\/bin\/telegram\/notif_connexion\/telegram.sh/\/usr
 cd /tmp
 rm -rf Bash
 git clone https://github.com/Phips02/Bash.git
-cd Bash/Telegram/telegram_notif_v2
+cd Bash/Telegram/Telegram\ -\ telegram_notif_v2
 sudo cp *.sh /usr/local/bin/telegram/notif_connexion/
 sudo chmod +x /usr/local/bin/telegram/notif_connexion/*.sh
 cd /tmp
@@ -181,3 +181,22 @@ Cette licence :
 - Oblige le partage des modifications sous la même licence
 - Interdit l'utilisation commerciale fermée
 - Oblige à partager le code source 
+
+## Désinstallation
+
+Pour désinstaller complètement le système de notification :
+
+```bash
+# Supprimer la ligne dans /etc/profile
+sudo sed -i '/telegram.sh/d' /etc/profile
+
+# Supprimer les fichiers
+sudo rm -rf /etc/telegram/notif_connexion
+sudo rm -rf /usr/local/bin/telegram/notif_connexion
+
+# Optionnel : Supprimer le groupe
+sudo groupdel telegramnotif
+
+# Optionnel : Supprimer l'utilisateur telegram
+sudo userdel -r telegram
+``` 

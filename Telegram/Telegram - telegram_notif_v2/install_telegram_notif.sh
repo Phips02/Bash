@@ -16,6 +16,12 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+# Création du groupe telegramnotif si non existant
+if ! getent group telegramnotif > /dev/null; then
+    groupadd telegramnotif
+    log_message "INFO" "Groupe telegramnotif créé"
+fi
+
 # Vérification des arguments
 if [ "$#" -ne 2 ]; then
     log_message "ERROR" "Usage: $0 <TELEGRAM_BOT_TOKEN> <TELEGRAM_CHAT_ID>"
@@ -26,23 +32,23 @@ fi
 TELEGRAM_BOT_TOKEN="$1"
 TELEGRAM_CHAT_ID="$2"
 
-# URL du dépôt (à modifier selon votre dépôt)
-REPO_URL="https://raw.githubusercontent.com/Phips02/Bash/main/Telegram%20-%20telegram_notif_v2"
+# URL du dépôt
+REPO_URL="https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2"
 
 # Création du dossier temporaire
 TMP_DIR=$(mktemp -d)
 log_message "INFO" "Création du dossier temporaire: $TMP_DIR"
 
-# Téléchargement du script de déploiement
-log_message "INFO" "Téléchargement du script de déploiement..."
-if ! wget -q "${REPO_URL}/deploy_telegram.sh" -O "${TMP_DIR}/deploy_telegram.sh"; then
-    log_message "ERROR" "Échec du téléchargement du script"
-    rm -rf "$TMP_DIR"
-    exit 1
-fi
-
-# Rendre le script exécutable
-chmod +x "${TMP_DIR}/deploy_telegram.sh"
+# Téléchargement des scripts
+log_message "INFO" "Téléchargement des scripts..."
+for script in deploy_telegram.sh telegram.functions.sh telegram.sh; do
+    if ! wget -q "${REPO_URL}/${script}" -O "${TMP_DIR}/${script}"; then
+        log_message "ERROR" "Échec du téléchargement de ${script}"
+        rm -rf "$TMP_DIR"
+        exit 1
+    fi
+    chmod +x "${TMP_DIR}/${script}"
+done
 
 # Export des variables pour le script de déploiement
 export TELEGRAM_BOT_TOKEN

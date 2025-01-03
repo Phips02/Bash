@@ -21,3 +21,12 @@ function telegram_text_send() {
 
 	curl -s -d "chat_id=${CHATID}&text=${TEXT}&parse_mode=${PARSE_MODE}" ${API}/${ENDPOINT} >/dev/null
 }
+
+# Fonction de logging si elle n'existe pas
+if ! command -v log_message &> /dev/null; then
+    function log_message() {
+        local level="$1"
+        local message="$2"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message"
+    }
+fi

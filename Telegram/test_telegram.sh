@@ -13,6 +13,12 @@ API="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}"
 TEXT="Test de notification Telegram : Bot opérationnel avec succès !"
 ENDPOINT="sendMessage"
 
+# Vérifier que jq est installé
+if ! command -v jq &> /dev/null; then
+    echo "jq n'est pas installé"
+    exit 1
+fi
+
 # Envoi du message
 curl -s -d "chat_id=${TELEGRAM_CHAT_ID}&text=${TEXT}" ${API}/${ENDPOINT} >/dev/null
 

@@ -82,16 +82,19 @@ if ! curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getMe" | grep -q
     exit 1
 fi
 
-# Créer et sécuriser le fichier de configuration
+# Création et sécurisation du fichier de configuration
 echo "Création du fichier de configuration sécurisé..."
 cat <<EOF > "$CONFIG_FILE"
+# Configuration Telegram
+# Fichier : /etc/telegram/notif_connexion/telegram.config
+
 TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN}"
 TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID}"
 EOF
 
-# Correction des permissions pour que tous les utilisateurs puissent lire le fichier
-chmod 644 "$CONFIG_FILE"
-echo "Fichier de configuration créé et sécurisé à : $CONFIG_FILE"
+# Permissions correctes dès le début
+chmod 640 "$CONFIG_FILE"
+chown root:telegramnotif "$CONFIG_FILE"
 
 # Création du fichier telegram.functions.sh
 echo "Création du fichier de fonctions..."
@@ -226,3 +229,12 @@ DEPLOYMENT_TEXT="*Le script de déploiement a été exécuté avec succès sur :
 telegram_text_send "$DEPLOYMENT_TEXT"
 
 echo "Déploiement terminé. Le script de déploiement a été supprimé."
+
+# Création du groupe telegramnotif si non existant
+if ! getent group telegramnotif > /dev/null; then
+    groupadd telegramnotif
+    log_message "INFO" "Groupe telegramnotif créé"
+fi
+
+# Uniformiser les permissions
+chmod 640 "$CONFIG_FILE"  # Une seule fois

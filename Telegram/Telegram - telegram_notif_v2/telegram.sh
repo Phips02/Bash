@@ -6,14 +6,24 @@
 #Exemple : /usr/local/bin/notif_connexion/telegram.sh
 #------------------------------------------------
 
+# Vérification des dépendances
+if ! command -v jq &> /dev/null; then
+    echo "Erreur : jq n'est pas installé"
+    exit 1
+fi
+
+if ! command -v curl &> /dev/null; then
+    echo "Erreur : curl n'est pas installé"
+    exit 1
+fi
+
 source /usr/local/bin/telegram/notif_connexion/telegram.functions.sh
 
 # Récupération des informations système
 DATE=$(date "+%F %H:%M:%S")
 IP_DEVICE=$(hostname -I | cut -d " " -f1)
 MAC_ADDRESS=$(ip link show | grep ether | awk '{print $2}')
-IP_LOCAL=$(echo $SSH_CLIENT |cut -d " " -f1)
-#IP_LOCAL=$(hostname -I | awk '{print $1}')
+IP_LOCAL=$(echo $SSH_CLIENT | cut -d " " -f1)
 
 # Récupération des informations publiques
 IPINFO=$(curl -s ipinfo.io)
