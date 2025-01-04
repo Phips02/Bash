@@ -2,7 +2,7 @@
 
 ###############################################################################
 # Script d'installation automatique des notifications Telegram
-# Version 3.1
+# Version 3.4
 ###############################################################################
 
 # Fonction pour le logging avec horodatage et niveau
@@ -12,69 +12,40 @@ function log_message() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message"
 }
 
-# Fonction pour tracer les erreurs des commandes
-function execute_command() {
-    local cmd="$1"
-    local description="$2"
-    
-    if ! eval "$cmd" 2>/tmp/cmd_error.log; then
-        local error=$(cat /tmp/cmd_error.log)
-        log_message "ERROR" "Échec de $description: $error"
-        rm -f /tmp/cmd_error.log
-        return 1
-    fi
-    rm -f /tmp/cmd_error.log
-    return 0
-}
-
 # Vérification des droits root
 if [[ $EUID -ne 0 ]]; then
     log_message "ERROR" "Ce script doit être exécuté en tant que root"
     exit 1
 fi
 
-# Fonction pour vérifier et installer les dépendances
-function check_and_install_dependency() {
-    local pkg_name="$1"
-    local pkg_cmd="$2"
-    log_message "INFO" "Vérification de $pkg_name..."
-    
-    if ! command -v "$pkg_cmd" &> /dev/null; then
-        log_message "WARNING" "$pkg_cmd n'est pas installé. Installation en cours..."
-        
-        if ! execute_command "apt-get update" "mise à jour des dépôts"; then
-            return 1
+# Vérification et installation des dépendances
+for pkg in curl jq bash; do
+    log_message "INFO" "Vérification de $pkg..."
+    if ! command -v "$pkg" &> /dev/null; then
+        log_message "WARNING" "$pkg n'est pas installé. Installation en cours..."
+        apt-get update && apt-get install -y "$pkg"
+        if [ $? -ne 0 ]; then
+            log_message "ERROR" "Échec de l'installation de $pkg"
+            exit 1
         fi
-        
-        if ! execute_command "apt-get install -y $pkg_name" "installation de $pkg_name"; then
-            return 1
-        fi
-        
-        log_message "SUCCESS" "$pkg_name installé avec succès"
-    else
-        log_message "INFO" "$pkg_cmd est déjà installé"
-    fi
-}
-
-# Vérification des dépendances
-for dep in "curl:curl" "jq:jq" "bash:bash"; do
-    IFS=: read pkg cmd <<< "$dep"
-    if ! check_and_install_dependency "$pkg" "$cmd"; then
-        log_message "ERROR" "Échec de l'installation des dépendances"
-        exit 1
+        log_message "SUCCESS" "$pkg installé avec succès"
     fi
 done
 
 # Création des répertoires nécessaires
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
 CONFIG_DIR="/etc/telegram/notif_connexion"
-if ! execute_command "mkdir -p \"$BASE_DIR\" \"$CONFIG_DIR\"" "création des répertoires"; then
+mkdir -p "$BASE_DIR" "$CONFIG_DIR"
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec de la création des répertoires"
     exit 1
 fi
 
 # Création du groupe telegramnotif
 if ! getent group telegramnotif > /dev/null; then
-    if ! execute_command "groupadd telegramnotif" "création du groupe telegramnotif"; then
+    groupadd telegramnotif
+    if [ $? -ne 0 ]; then
+        log_message "ERROR" "Échec de la création du groupe"
         exit 1
     fi
     log_message "SUCCESS" "Groupe telegramnotif créé"
@@ -115,19 +86,31 @@ while true; do
             while true; do
                 read -p "Entrez le nouveau hostname : " new_hostname
                 if [[ $new_hostname =~ ^[a-zA-Z0-9-]+$ ]]; then
-                    if ! execute_command "cp /etc/hostname /etc/hostname.bak" "sauvegarde du hostname"; then
+                    # Sauvegarde du hostname actuel
+                    cp /etc/hostname /etc/hostname.bak
+                    if [ $? -ne 0 ]; then
+                        log_message "ERROR" "Échec de la sauvegarde du hostname"
                         continue
                     fi
                     
-                    if ! execute_command "echo \"$new_hostname\" > /etc/hostname" "modification du hostname"; then
+                    # Modification du hostname
+                    echo "$new_hostname" > /etc/hostname
+                    if [ $? -ne 0 ]; then
+                        log_message "ERROR" "Échec de la modification du hostname"
                         continue
                     fi
                     
-                    if ! execute_command "sed -i \"s/$current_hostname/$new_hostname/g\" /etc/hosts" "mise à jour des hosts"; then
+                    # Mise à jour des hosts
+                    sed -i "s/$current_hostname/$new_hostname/g" /etc/hosts
+                    if [ $? -ne 0 ]; then
+                        log_message "ERROR" "Échec de la mise à jour des hosts"
                         continue
                     fi
                     
-                    if ! execute_command "hostnamectl set-hostname \"$new_hostname\"" "application du nouveau hostname"; then
+                    # Application du nouveau hostname
+                    hostnamectl set-hostname "$new_hostname"
+                    if [ $? -ne 0 ]; then
+                        log_message "ERROR" "Échec de l'application du nouveau hostname"
                         continue
                     fi
                     
@@ -155,48 +138,75 @@ done
 REPO_URL="https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2"
 
 log_message "INFO" "Téléchargement de telegram.sh..."
-if ! execute_command "wget -q \"${REPO_URL}/telegram.sh\" -O \"${BASE_DIR}/telegram.sh\"" "téléchargement du script principal"; then
+wget -q "${REPO_URL}/telegram.sh" -O "${BASE_DIR}/telegram.sh"
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec du téléchargement du script"
     exit 1
 fi
 
-if ! execute_command "chmod +x \"${BASE_DIR}/telegram.sh\"" "attribution des droits d'exécution"; then
+chmod +x "${BASE_DIR}/telegram.sh"
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec de l'attribution des droits d'exécution"
     exit 1
 fi
 
 # Création du fichier de configuration
 log_message "INFO" "Création du fichier de configuration..."
-if ! execute_command "cat > \"$CONFIG_DIR/telegram.config\" << EOF
-# Configuration Telegram
-# Version 3.1
-# Fichier : /etc/telegram/notif_connexion/telegram.config
+cat > "$CONFIG_DIR/telegram.config" << EOF
+###############################################################################
+# Configuration Telegram pour les notifications de connexion
+# Version 3.4
+###############################################################################
 
-TELEGRAM_BOT_TOKEN=\"${TELEGRAM_BOT_TOKEN}\"
-TELEGRAM_CHAT_ID=\"${TELEGRAM_CHAT_ID}\"
+# Configuration du bot
+TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN}"
+TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID}"
 
-# Chemins des dossiers et fichiers
-BASE_DIR=\"${BASE_DIR}\"
-CONFIG_DIR=\"${CONFIG_DIR}\"
-SCRIPT_PATH=\"\$BASE_DIR/telegram.sh\"
-CONFIG_PATH=\"\$CONFIG_DIR/telegram.config\"
-EOF" "création du fichier de configuration"; then
+# Chemins système
+BASE_DIR="${BASE_DIR}"
+CONFIG_DIR="${CONFIG_DIR}"
+SCRIPT_PATH="\$BASE_DIR/telegram.sh"
+CONFIG_PATH="\$CONFIG_DIR/telegram.config"
+
+# Paramètres
+LOG_LEVEL="INFO"
+CURL_TIMEOUT=10
+DATE_FORMAT="%Y-%m-%d %H:%M:%S"
+
+# Export des variables
+export TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID
+export BASE_DIR CONFIG_DIR SCRIPT_PATH CONFIG_PATH
+export LOG_LEVEL CURL_TIMEOUT DATE_FORMAT
+EOF
+
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec de la création du fichier de configuration"
     exit 1
 fi
 
 # Configuration des permissions
 log_message "INFO" "Configuration des permissions..."
-if ! execute_command "chmod 640 \"$CONFIG_DIR/telegram.config\"" "modification des permissions du fichier de configuration"; then
+chmod 640 "$CONFIG_DIR/telegram.config"
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec de la modification des permissions du fichier de configuration"
     exit 1
 fi
 
-if ! execute_command "chmod 750 \"$BASE_DIR/telegram.sh\"" "modification des permissions du script"; then
+chmod 750 "$BASE_DIR/telegram.sh"
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec de la modification des permissions du script"
     exit 1
 fi
 
-if ! execute_command "chown root:telegramnotif \"$CONFIG_DIR/telegram.config\"" "modification du propriétaire du fichier de configuration"; then
+chown root:telegramnotif "$CONFIG_DIR/telegram.config"
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec de la modification du propriétaire du fichier de configuration"
     exit 1
 fi
 
-if ! execute_command "chown root:telegramnotif \"$BASE_DIR/telegram.sh\"" "modification du propriétaire du script"; then
+chown root:telegramnotif "$BASE_DIR/telegram.sh"
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec de la modification du propriétaire du script"
     exit 1
 fi
 
@@ -205,27 +215,32 @@ log_message "INFO" "Configuration du système..."
 
 # Ajout au bash.bashrc
 if ! grep -q "\$SCRIPT_PATH" /etc/bash.bashrc; then
-    if ! execute_command "echo '
+    echo '
 # Notification Telegram pour connexions SSH et su
-if [ -n \"\$PS1\" ] && [ \"\$TERM\" != \"unknown\" ]; then
-    source $CONFIG_DIR/telegram.config
-    \$SCRIPT_PATH &>/dev/null
-fi' >> /etc/bash.bashrc" "configuration de bash.bashrc"; then
+if [ -n "$PS1" ] && [ "$TERM" != "unknown" ]; then
+    source '"$CONFIG_DIR"'/telegram.config
+    $SCRIPT_PATH &>/dev/null
+fi' >> /etc/bash.bashrc
+    if [ $? -ne 0 ]; then
+        log_message "ERROR" "Échec de la configuration de bash.bashrc"
         exit 1
     fi
 fi
 
 # Configuration PAM
 if ! grep -q "session.*telegram.sh" /etc/pam.d/su; then
-    if ! execute_command "echo '# Notification Telegram pour su
-session optional pam_exec.so seteuid source $CONFIG_DIR/telegram.config && \$SCRIPT_PATH' >> /etc/pam.d/su" "configuration de PAM"; then
+    echo "# Notification Telegram pour su
+session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\"" >> /etc/pam.d/su
+    if [ $? -ne 0 ]; then
+        log_message "ERROR" "Échec de la configuration PAM"
         exit 1
     fi
 fi
 
 # Test de l'installation
 log_message "INFO" "Test de l'installation..."
-if ! execute_command "\"$BASE_DIR/telegram.sh\"" "test du script"; then
+"$BASE_DIR/telegram.sh"
+if [ $? -ne 0 ]; then
     log_message "ERROR" "Le test a échoué, vérifiez la configuration"
     exit 1
 fi
@@ -235,7 +250,8 @@ log_message "INFO" "Déconnectez-vous et reconnectez-vous pour activer les notif
 
 # Auto-destruction du script
 log_message "INFO" "Auto-destruction du script..."
-if ! execute_command "rm -f \"$0\"" "suppression du script d'installation"; then
+rm -f "$0"
+if [ $? -ne 0 ]; then
     log_message "WARNING" "Impossible de supprimer le script d'installation"
 fi
 

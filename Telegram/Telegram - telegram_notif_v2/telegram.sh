@@ -2,7 +2,7 @@
 
 ###############################################################################
 # Script de notification Telegram pour les connexions SSH et su
-# Version 3.1
+# Version 3.4
 ###############################################################################
 
 # Fonction pour le logging avec horodatage et niveau
