@@ -38,7 +38,8 @@ su -
 
 # Télécharger et exécuter le script de mise à jour
 cd /tmp
-wget https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/update_telegram_notif.sh
+rm -f update_telegram_notif.sh*
+wget --no-cache --no-cookies --header "Cache-Control: no-cache" https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/update_telegram_notif.sh
 chmod +x update_telegram_notif.sh
 ./update_telegram_notif.sh
 ```

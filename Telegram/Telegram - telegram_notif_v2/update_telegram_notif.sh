@@ -331,7 +331,9 @@ cd "$BACKUP_DIR" && ls -t telegram.* | tail -n +11 | xargs -r rm
 # Message de fin
 log_message "SUCCESS" "Mise à jour terminée avec succès!"
 
-# Télécharger le script d'installation
-wget https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/install_telegram_notif.sh
+# Téléchargement propre du script d'installation
+cd /tmp
+rm -f install_telegram_notif.sh*
+wget --no-cache --no-cookies --header "Cache-Control: no-cache" https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/install_telegram_notif.sh
 chmod +x install_telegram_notif.sh
 ./install_telegram_notif.sh
