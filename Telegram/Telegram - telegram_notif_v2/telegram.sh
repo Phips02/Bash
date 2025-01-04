@@ -146,14 +146,14 @@ get_source_ip() {
             if ! ps -p "$ppid" >/dev/null 2>&1; then
                 log_message "ERROR" "Processus parent $ppid non trouvé"
                 break
-            }
+            fi
 
             local parent_cmd
             parent_cmd=$(ps -o cmd= -p "$ppid" 2>/dev/null)
             if [ $? -ne 0 ]; then
                 log_message "ERROR" "Impossible de lire la commande du processus $ppid"
                 break
-            }
+            fi
 
             if [[ "$parent_cmd" == *"sshd"* ]]; then
                 local parent_ssh_ip

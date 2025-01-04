@@ -373,12 +373,19 @@ rm -f update_telegram_notif.sh*
 # Vérification de la configuration PAM
 check_pam_config() {
     if ! grep -q "session.*telegram.sh" /etc/pam.d/su; then
-        log_message "WARNING" "Configuration PAM manquante, réinstallation..."
-        echo "session optional pam_exec.so seteuid source $CONFIG_DIR/telegram.config && \$SCRIPT_PATH" >> /etc/pam.d/su
+        log_message "INFO" "Configuration PAM manquante, installation..."
+        if ! execute_command "echo 'session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\"' >> /etc/pam.d/su" "configuration de PAM"; then
+            log_message "ERROR" "Échec de la configuration PAM"
+            return 1
+        fi
+        log_message "SUCCESS" "Configuration PAM installée"
+    else
+        log_message "INFO" "Configuration PAM déjà présente"
     fi
 }
 
-check_pam_config
+# Appel de la fonction
+check_pam_config || exit 1
 
 # Nettoyage des anciennes sauvegardes (garde les 10 dernières)
 log_message "INFO" "Nettoyage des anciennes sauvegardes..."
