@@ -2,12 +2,8 @@
 
 ###############################################################################
 # Script d'installation automatique des notifications Telegram
-# Version 3.6
+# Version 3.1
 ###############################################################################
-
-# Vérification de la version
-SCRIPT_VERSION="3.6"
-log_message "INFO" "Démarrage du script d'installation version $SCRIPT_VERSION"
 
 # Fonction pour le logging avec horodatage et niveau
 function log_message() {
@@ -219,21 +215,13 @@ fi' >> /etc/bash.bashrc" "configuration de bash.bashrc"; then
     fi
 fi
 
-# Configuration PAM avec sécurité
-log_message "INFO" "Configuration de PAM..."
-if grep -q "telegram" /etc/pam.d/su; then
-    log_message "INFO" "Nettoyage de l'ancienne configuration PAM..."
-    if ! execute_command "sed -i '/telegram/d' /etc/pam.d/su" "nettoyage de la configuration PAM"; then
+# Configuration PAM
+if ! grep -q "session.*telegram.sh" /etc/pam.d/su; then
+    if ! execute_command "echo '# Notification Telegram pour su
+session optional pam_exec.so seteuid source $CONFIG_DIR/telegram.config && \$SCRIPT_PATH' >> /etc/pam.d/su" "configuration de PAM"; then
         exit 1
     fi
 fi
-
-# Ajout de la nouvelle configuration
-if ! execute_command "echo '# Notification Telegram pour su
-session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\"' >> /etc/pam.d/su" "configuration de PAM"; then
-    exit 1
-fi
-log_message "SUCCESS" "Configuration PAM installée"
 
 # Test de l'installation
 log_message "INFO" "Test de l'installation..."

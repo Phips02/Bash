@@ -1,35 +1,9 @@
 #!/bin/bash
 
-# Redirection des erreurs de source vers /dev/null
-exec 2>/dev/null
-
 ###############################################################################
 # Script de mise à jour des notifications Telegram
-# Version 3.6
+# Version 3.4
 ###############################################################################
-
-# Fonction pour le logging avec horodatage et niveau
-function log_message() {
-    local level="$1"
-    local message="$2"
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message"
-}
-
-# Vérification de la version
-SCRIPT_VERSION="3.6"
-log_message "INFO" "Démarrage du script de mise à jour version $SCRIPT_VERSION"
-
-# Vérification de la version en ligne
-ONLINE_VERSION=$(wget -qO- "https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/update_telegram_notif.sh" | grep -m1 "Version" | cut -d" " -f3)
-if [ -n "$ONLINE_VERSION" ] && [ "$ONLINE_VERSION" != "$SCRIPT_VERSION" ]; then
-    log_message "WARNING" "Une nouvelle version est disponible: $ONLINE_VERSION (version actuelle: $SCRIPT_VERSION)"
-    read -p "Voulez-vous continuer avec la version actuelle ? (o/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Oo]$ ]]; then
-        log_message "INFO" "Mise à jour annulée. Veuillez télécharger la dernière version."
-        exit 1
-    fi
-fi
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -37,6 +11,13 @@ CONFIG_DIR="/etc/telegram/notif_connexion"
 BACKUP_DIR="$CONFIG_DIR/backup"
 SCRIPT_PATH="$BASE_DIR/telegram.sh"
 CONFIG_PATH="$CONFIG_DIR/telegram.config"
+
+# Fonction pour le logging avec horodatage et niveau
+function log_message() {
+    local level="$1"
+    local message="$2"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message"
+}
 
 # Vérification des droits root
 if [[ $EUID -ne 0 ]]; then
@@ -72,51 +53,17 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Configuration PAM avec sécurité
-log_message "INFO" "Vérification de la configuration PAM..."
-if grep -q "telegram" /etc/pam.d/su; then
-    log_message "INFO" "Nettoyage de l'ancienne configuration PAM..."
-    if ! execute_command "sed -i '/telegram/d' /etc/pam.d/su" "nettoyage de la configuration PAM"; then
-        exit 1
-    fi
-fi
-
-# Ajout de la nouvelle configuration si nécessaire
+# Configuration PAM
 if ! grep -q "session.*telegram.sh" /etc/pam.d/su; then
-    log_message "INFO" "Installation de la configuration PAM..."
-    if ! execute_command "echo '# Notification Telegram pour su
-session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\"' >> /etc/pam.d/su" "configuration de PAM"; then
+    log_message "INFO" "Configuration PAM manquante, installation..."
+    echo "session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\"" >> /etc/pam.d/su
+    if [ $? -ne 0 ]; then
+        log_message "ERROR" "Échec de la configuration PAM"
         exit 1
     fi
     log_message "SUCCESS" "Configuration PAM installée"
 else
     log_message "INFO" "Configuration PAM déjà présente"
-fi
-
-# Configuration des permissions
-log_message "INFO" "Configuration des permissions..."
-chmod 640 "$CONFIG_DIR/telegram.config"
-if [ $? -ne 0 ]; then
-    log_message "ERROR" "Échec de la configuration des permissions du fichier de configuration"
-    exit 1
-fi
-
-chmod 750 "$SCRIPT_PATH"
-if [ $? -ne 0 ]; then
-    log_message "ERROR" "Échec de la configuration des permissions du script"
-    exit 1
-fi
-
-chown root:telegramnotif "$CONFIG_DIR/telegram.config"
-if [ $? -ne 0 ]; then
-    log_message "ERROR" "Échec de la modification du propriétaire du fichier de configuration"
-    exit 1
-fi
-
-chown root:telegramnotif "$SCRIPT_PATH"
-if [ $? -ne 0 ]; then
-    log_message "ERROR" "Échec de la modification du propriétaire du script"
-    exit 1
 fi
 
 # Nettoyage
