@@ -2,7 +2,7 @@
 
 ###############################################################################
 # Script de mise à jour des notifications Telegram
-# Version 3.1
+# Version 3.2
 #
 # Ce script permet de :
 # - Mettre à jour les scripts de notification Telegram
@@ -243,6 +243,10 @@ if ! "${SCRIPT_PATH}"; then
     log_message "INFO" "Restauration de la sauvegarde effectuée"
     exit 1
 fi
+
+# Nettoyage du dossier tmp
+cd /tmp
+rm -f update_telegram_notif.sh*
 
 ###############################################################################
 # SECTION 5 : VÉRIFICATIONS POST-INSTALLATION
