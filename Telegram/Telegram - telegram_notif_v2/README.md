@@ -1,4 +1,8 @@
-# Système de notification Telegram pour connexions SSH
+# Système de notification Telegram pour connexions SSH et su
+Version 3.0
+
+## À propos
+Ce système permet de recevoir des notifications Telegram lors des connexions SSH et des utilisations de la commande su.
 
 ## Installation automatique
 
@@ -16,13 +20,14 @@ chmod +x install_telegram_notif.sh
 ## Structure des dossiers
 ```
 /etc/telegram/notif_connexion/
-└── telegram.config              # Configuration centralisée
+├── telegram.config              # Configuration centralisée
+└── backup/                      # Dossier des sauvegardes automatiques
 
 /usr/local/bin/telegram/notif_connexion/
-├── telegram.functions.sh        # Fonctions Telegram
 └── telegram.sh                  # Script principal
 
-/etc/bash.bashrc                 # Configuration système pour l'exécution automatique
+/etc/pam.d/su                   # Configuration PAM pour les notifications su
+/etc/bash.bashrc                # Configuration système pour l'exécution automatique
 ```
 
 ## Mise à jour
@@ -31,7 +36,7 @@ chmod +x install_telegram_notif.sh
 # Se connecter en root
 su -
 
-# Télécharger le script de mise à jour
+# Télécharger et exécuter le script de mise à jour
 cd /tmp
 wget https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/update_telegram_notif.sh
 chmod +x update_telegram_notif.sh
@@ -48,8 +53,8 @@ cd /tmp
 rm -rf Bash
 git clone https://github.com/Phips02/Bash.git
 cd Bash/Telegram/Telegram\ -\ telegram_notif_v2
-cp *.sh /usr/local/bin/telegram/notif_connexion/
-chmod +x /usr/local/bin/telegram/notif_connexion/*.sh
+cp telegram.sh /usr/local/bin/telegram/notif_connexion/
+chmod +x /usr/local/bin/telegram/notif_connexion/telegram.sh
 cd /tmp
 rm -rf Bash
 ```
@@ -72,10 +77,11 @@ Pour désinstaller complètement le système de notification (en tant que root) 
 # Se connecter en root
 su -
 
-# Supprimer la ligne dans /etc/bash.bashrc
+# Supprimer la configuration dans bash.bashrc et PAM
 sed -i '/telegram.sh/d' /etc/bash.bashrc
+sed -i '/telegram.sh/d' /etc/pam.d/su
 
-# Supprimer les fichiers
+# Supprimer les fichiers et sauvegardes
 rm -rf /etc/telegram/notif_connexion
 rm -rf /usr/local/bin/telegram/notif_connexion
 
