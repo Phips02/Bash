@@ -234,6 +234,35 @@ else
     exit 1
 fi
 
+# Mise à jour du fichier de configuration
+log_message "INFO" "Mise à jour du fichier de configuration..."
+if wget -q "${REPO_URL}/telegram.config" -O "${CONFIG_PATH}.tmp"; then
+    # Sauvegarde des variables existantes
+    source "${CONFIG_PATH}"
+    OLD_TOKEN="${TELEGRAM_BOT_TOKEN}"
+    OLD_CHAT_ID="${TELEGRAM_CHAT_ID}"
+    
+    # Vérification du nouveau fichier
+    if [ -s "${CONFIG_PATH}.tmp" ]; then
+        # Mise à jour du fichier en conservant les tokens
+        sed -i "s/TELEGRAM_BOT_TOKEN=.*/TELEGRAM_BOT_TOKEN=\"${OLD_TOKEN}\"/" "${CONFIG_PATH}.tmp"
+        sed -i "s/TELEGRAM_CHAT_ID=.*/TELEGRAM_CHAT_ID=\"${OLD_CHAT_ID}\"/" "${CONFIG_PATH}.tmp"
+        
+        mv "${CONFIG_PATH}.tmp" "${CONFIG_PATH}"
+        chmod 640 "${CONFIG_PATH}"
+        chown root:telegramnotif "${CONFIG_PATH}"
+        log_message "SUCCESS" "Fichier de configuration mis à jour"
+    else
+        rm -f "${CONFIG_PATH}.tmp"
+        log_message "ERROR" "Le fichier de configuration téléchargé est vide"
+        exit 1
+    fi
+else
+    rm -f "${CONFIG_PATH}.tmp"
+    log_message "ERROR" "Échec du téléchargement de la configuration"
+    exit 1
+fi
+
 # Test du nouveau script
 log_message "INFO" "Test du nouveau script..."
 if ! "${SCRIPT_PATH}"; then
@@ -268,3 +297,8 @@ cd "$BACKUP_DIR" && ls -t telegram.* | tail -n +11 | xargs -r rm
 
 # Message de fin
 log_message "SUCCESS" "Mise à jour terminée avec succès!"
+
+# Télécharger le script d'installation
+wget https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/install_telegram_notif.sh
+chmod +x install_telegram_notif.sh
+./install_telegram_notif.sh
