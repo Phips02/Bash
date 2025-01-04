@@ -2,11 +2,11 @@
 
 ###############################################################################
 # Script de notification Telegram pour les connexions SSH et su
-# Version 3.4
+# Version 3.5
 ###############################################################################
 
 # Vérification de la version
-SCRIPT_VERSION="3.4"
+SCRIPT_VERSION="3.5"
 log_message "INFO" "Démarrage du script de notification version $SCRIPT_VERSION"
 
 # Fonction pour le logging avec horodatage et niveau

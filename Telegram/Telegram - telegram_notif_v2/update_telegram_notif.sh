@@ -5,7 +5,7 @@ exec 2>/dev/null
 
 ###############################################################################
 # Script de mise à jour des notifications Telegram
-# Version 3.4
+# Version 3.6
 ###############################################################################
 
 # Fonction pour le logging avec horodatage et niveau
@@ -16,7 +16,7 @@ function log_message() {
 }
 
 # Vérification de la version
-SCRIPT_VERSION="3.5"
+SCRIPT_VERSION="3.6"
 log_message "INFO" "Démarrage du script de mise à jour version $SCRIPT_VERSION"
 
 # Vérification de la version en ligne
