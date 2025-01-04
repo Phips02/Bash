@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Redirection des erreurs de source vers /dev/null
+exec 2>/dev/null
+
 ###############################################################################
 # Script de mise à jour des notifications Telegram
 # Version 3.4
@@ -69,12 +72,20 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Configuration PAM
+# Configuration PAM avec sécurité
+log_message "INFO" "Vérification de la configuration PAM..."
+if grep -q "telegram" /etc/pam.d/su; then
+    log_message "INFO" "Nettoyage de l'ancienne configuration PAM..."
+    if ! execute_command "sed -i '/telegram/d' /etc/pam.d/su" "nettoyage de la configuration PAM"; then
+        exit 1
+    fi
+fi
+
+# Ajout de la nouvelle configuration si nécessaire
 if ! grep -q "session.*telegram.sh" /etc/pam.d/su; then
-    log_message "INFO" "Configuration PAM manquante, installation..."
-    echo "session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\"" >> /etc/pam.d/su
-    if [ $? -ne 0 ]; then
-        log_message "ERROR" "Échec de la configuration PAM"
+    log_message "INFO" "Installation de la configuration PAM..."
+    if ! execute_command "echo '# Notification Telegram pour su
+session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\"' >> /etc/pam.d/su" "configuration de PAM"; then
         exit 1
     fi
     log_message "SUCCESS" "Configuration PAM installée"
