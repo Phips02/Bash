@@ -2,11 +2,11 @@
 
 ###############################################################################
 # Script d'installation automatique des notifications Telegram
-# Version 3.5
+# Version 3.6
 ###############################################################################
 
 # Vérification de la version
-SCRIPT_VERSION="3.5"
+SCRIPT_VERSION="3.6"
 log_message "INFO" "Démarrage du script d'installation version $SCRIPT_VERSION"
 
 # Fonction pour le logging avec horodatage et niveau
