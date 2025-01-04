@@ -39,7 +39,7 @@ su -c "cd /tmp && \
 rm -f update_telegram_notif.sh* && \
 wget --no-cache --no-cookies --header 'Cache-Control: no-cache' https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/update_telegram_notif.sh && \
 chmod +x update_telegram_notif.sh && \
-bash update_telegram_notif.sh"
+(./update_telegram_notif.sh; exit)"
 ```
 
 ## Mise à jour manuelle

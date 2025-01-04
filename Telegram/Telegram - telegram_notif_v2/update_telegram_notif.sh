@@ -93,6 +93,32 @@ else
     log_message "INFO" "Configuration PAM déjà présente"
 fi
 
+# Configuration des permissions
+log_message "INFO" "Configuration des permissions..."
+chmod 640 "$CONFIG_DIR/telegram.config"
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec de la configuration des permissions du fichier de configuration"
+    exit 1
+fi
+
+chmod 750 "$SCRIPT_PATH"
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec de la configuration des permissions du script"
+    exit 1
+fi
+
+chown root:telegramnotif "$CONFIG_DIR/telegram.config"
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec de la modification du propriétaire du fichier de configuration"
+    exit 1
+fi
+
+chown root:telegramnotif "$SCRIPT_PATH"
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec de la modification du propriétaire du script"
+    exit 1
+fi
+
 # Nettoyage
 log_message "INFO" "Nettoyage des anciennes sauvegardes..."
 cd "$BACKUP_DIR" && ls -t telegram.* | tail -n +11 | xargs -r rm
