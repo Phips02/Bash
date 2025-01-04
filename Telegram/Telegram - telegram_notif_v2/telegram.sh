@@ -89,7 +89,13 @@ get_source_ip() {
                     return
                 fi
             fi
-            ppid=$(ps -o ppid= -p $ppid)
+            # Vérification que ppid est bien un entier avant de l'utiliser
+            if [[ "$ppid" =~ ^[0-9]+$ ]]; then
+                ppid=$(ps -o ppid= -p $ppid)
+            else
+                echo "Erreur : PPID non valide"
+                break
+            fi
         done
     fi
 
