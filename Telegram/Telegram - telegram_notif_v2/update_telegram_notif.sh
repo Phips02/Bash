@@ -2,13 +2,7 @@
 
 ###############################################################################
 # Script de mise à jour des notifications Telegram
-# Version 3.2
-#
-# Ce script permet de :
-# - Mettre à jour les scripts de notification Telegram
-# - Nettoyer les anciennes versions
-# - Vérifier et réparer la configuration
-# - Sauvegarder les fichiers existants
+# Version 3.3
 ###############################################################################
 
 # Fonction pour le logging avec horodatage et niveau
@@ -17,6 +11,45 @@ function log_message() {
     local message="$2"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message"
 }
+
+###############################################################################
+# SECTION 0 : INITIALISATION DE LA CONFIGURATION
+###############################################################################
+
+# Création des répertoires si nécessaire
+BASE_DIR="/usr/local/bin/telegram/notif_connexion"
+CONFIG_DIR="/etc/telegram/notif_connexion"
+mkdir -p "$BASE_DIR" "$CONFIG_DIR"
+
+# Création de la configuration de base si elle n'existe pas
+if [ ! -f "$CONFIG_DIR/telegram.config" ]; then
+    log_message "INFO" "Création de la configuration initiale..."
+    cat <<EOF > "$CONFIG_DIR/telegram.config"
+# Configuration Telegram
+# Version 3.0
+# A placer dans : /etc/telegram/notif_connexion/telegram.config
+
+# Tokens et identifiants
+TELEGRAM_BOT_TOKEN=""
+TELEGRAM_CHAT_ID=""
+
+# Chemins des dossiers et fichiers
+BASE_DIR="/usr/local/bin/telegram/notif_connexion"
+CONFIG_DIR="/etc/telegram/notif_connexion"
+SCRIPT_PATH="\$BASE_DIR/telegram.sh"
+CONFIG_PATH="\$CONFIG_DIR/telegram.config"
+EOF
+
+    chmod 640 "$CONFIG_DIR/telegram.config"
+    chown root:telegramnotif "$CONFIG_DIR/telegram.config"
+    log_message "SUCCESS" "Configuration initiale créée"
+fi
+
+# Création du groupe telegramnotif si nécessaire
+if ! getent group telegramnotif > /dev/null; then
+    groupadd telegramnotif
+    log_message "INFO" "Groupe telegramnotif créé"
+fi
 
 ###############################################################################
 # SECTION 1 : VÉRIFICATIONS INITIALES
