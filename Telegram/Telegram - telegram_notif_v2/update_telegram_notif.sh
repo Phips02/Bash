@@ -12,6 +12,39 @@ function log_message() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message"
 }
 
+# Fonction pour tracer les erreurs des commandes
+function execute_command() {
+    local cmd="$1"
+    local description="$2"
+    
+    if ! eval "$cmd" 2>/tmp/cmd_error.log; then
+        local error=$(cat /tmp/cmd_error.log)
+        log_message "ERROR" "Échec de $description: $error"
+        rm -f /tmp/cmd_error.log
+        return 1
+    fi
+    rm -f /tmp/cmd_error.log
+    return 0
+}
+
+# Amélioration de la fonction source pour tracer les erreurs
+function safe_source() {
+    local config_file="$1"
+    if [ ! -f "$config_file" ]; then
+        log_message "ERROR" "Fichier de configuration introuvable: $config_file"
+        return 1
+    fi
+    
+    if ! source "$config_file" 2>/tmp/source_error.log; then
+        local error=$(cat /tmp/source_error.log)
+        log_message "ERROR" "Échec du chargement de $config_file: $error"
+        rm -f /tmp/source_error.log
+        return 1
+    fi
+    rm -f /tmp/source_error.log
+    return 0
+}
+
 # Fonction pour vérifier la configuration
 check_config() {
     local config="/etc/telegram/notif_connexion/telegram.config"
@@ -42,26 +75,22 @@ check_config() {
     return 0
 }
 
-# Amélioration de la fonction source pour tracer les erreurs
-function safe_source() {
-    local config_file="$1"
-    if [ ! -f "$config_file" ]; then
-        log_message "ERROR" "Fichier de configuration introuvable: $config_file"
-        return 1
+# Vérification de la configuration PAM
+check_pam_config() {
+    if ! grep -q "session.*telegram.sh" /etc/pam.d/su; then
+        log_message "INFO" "Configuration PAM manquante, installation..."
+        if ! execute_command "echo 'session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\"' >> /etc/pam.d/su" "configuration de PAM"; then
+            log_message "ERROR" "Échec de la configuration PAM"
+            return 1
+        fi
+        log_message "SUCCESS" "Configuration PAM installée"
+    else
+        log_message "INFO" "Configuration PAM déjà présente"
     fi
-    
-    if ! source "$config_file" 2>/tmp/source_error.log; then
-        local error=$(cat /tmp/source_error.log)
-        log_message "ERROR" "Échec du chargement de $config_file: $error"
-        rm -f /tmp/source_error.log
-        return 1
-    fi
-    rm -f /tmp/source_error.log
-    return 0
 }
 
 ###############################################################################
-# SECTION 0 : INITIALISATION DE LA CONFIGURATION
+# DÉBUT DU SCRIPT
 ###############################################################################
 
 # Création des répertoires si nécessaire
@@ -370,20 +399,6 @@ rm -f update_telegram_notif.sh*
 # SECTION 5 : VÉRIFICATIONS POST-INSTALLATION
 ###############################################################################
 
-# Vérification de la configuration PAM
-check_pam_config() {
-    if ! grep -q "session.*telegram.sh" /etc/pam.d/su; then
-        log_message "INFO" "Configuration PAM manquante, installation..."
-        if ! execute_command "echo 'session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\"' >> /etc/pam.d/su" "configuration de PAM"; then
-            log_message "ERROR" "Échec de la configuration PAM"
-            return 1
-        fi
-        log_message "SUCCESS" "Configuration PAM installée"
-    else
-        log_message "INFO" "Configuration PAM déjà présente"
-    fi
-}
-
 # Appel de la fonction
 check_pam_config || exit 1
 
@@ -398,27 +413,3 @@ rm -f update_telegram_notif.sh* install_telegram_notif.sh*
 # Message de fin
 log_message "SUCCESS" "Mise à jour terminée avec succès!"
 log_message "INFO" "Redémarrez votre session pour activer les changements"
-
-# Ajout de la gestion des erreurs pour les commandes critiques
-function execute_command() {
-    local cmd="$1"
-    local description="$2"
-    
-    if ! eval "$cmd" 2>/tmp/cmd_error.log; then
-        local error=$(cat /tmp/cmd_error.log)
-        log_message "ERROR" "Échec de $description: $error"
-        rm -f /tmp/cmd_error.log
-        return 1
-    fi
-    rm -f /tmp/cmd_error.log
-    return 0
-}
-
-# Exemple d'utilisation pour les commandes critiques
-if ! execute_command "chmod 640 \"$CONFIG_DIR/telegram.config\"" "modification des permissions"; then
-    exit 1
-fi
-
-if ! execute_command "chown root:telegramnotif \"$CONFIG_DIR/telegram.config\"" "modification du propriétaire"; then
-    exit 1
-fi
