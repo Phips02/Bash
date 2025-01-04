@@ -5,13 +5,6 @@
 # Version 3.4
 ###############################################################################
 
-# Définition des chemins
-BASE_DIR="/usr/local/bin/telegram/notif_connexion"
-CONFIG_DIR="/etc/telegram/notif_connexion"
-BACKUP_DIR="$CONFIG_DIR/backup"
-SCRIPT_PATH="$BASE_DIR/telegram.sh"
-CONFIG_PATH="$CONFIG_DIR/telegram.config"
-
 # Fonction pour le logging avec horodatage et niveau
 function log_message() {
     local level="$1"
@@ -19,35 +12,28 @@ function log_message() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message"
 }
 
-# Fonction pour tracer les erreurs des commandes
-function execute_command() {
-    local cmd="$1"
-    local description="$2"
-    
-    if ! eval "$cmd" 2>/tmp/cmd_error.log; then
-        local error=$(cat /tmp/cmd_error.log)
-        log_message "ERROR" "Échec de $description: $error"
-        rm -f /tmp/cmd_error.log
-        return 1
-    fi
-    rm -f /tmp/cmd_error.log
-    return 0
-}
+# Vérification de la version
+SCRIPT_VERSION="3.5"
+log_message "INFO" "Démarrage du script de mise à jour version $SCRIPT_VERSION"
 
-# Fonction pour la configuration PAM
-function configure_pam() {
-    if ! grep -q "session.*telegram.sh" /etc/pam.d/su; then
-        log_message "INFO" "Configuration PAM manquante, installation..."
-        if ! execute_command "echo 'session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\"' >> /etc/pam.d/su" "configuration de PAM"; then
-            log_message "ERROR" "Échec de la configuration PAM"
-            return 1
-        fi
-        log_message "SUCCESS" "Configuration PAM installée"
-    else
-        log_message "INFO" "Configuration PAM déjà présente"
+# Vérification de la version en ligne
+ONLINE_VERSION=$(wget -qO- "https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/update_telegram_notif.sh" | grep -m1 "Version" | cut -d" " -f3)
+if [ -n "$ONLINE_VERSION" ] && [ "$ONLINE_VERSION" != "$SCRIPT_VERSION" ]; then
+    log_message "WARNING" "Une nouvelle version est disponible: $ONLINE_VERSION (version actuelle: $SCRIPT_VERSION)"
+    read -p "Voulez-vous continuer avec la version actuelle ? (o/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Oo]$ ]]; then
+        log_message "INFO" "Mise à jour annulée. Veuillez télécharger la dernière version."
+        exit 1
     fi
-    return 0
-}
+fi
+
+# Définition des chemins
+BASE_DIR="/usr/local/bin/telegram/notif_connexion"
+CONFIG_DIR="/etc/telegram/notif_connexion"
+BACKUP_DIR="$CONFIG_DIR/backup"
+SCRIPT_PATH="$BASE_DIR/telegram.sh"
+CONFIG_PATH="$CONFIG_DIR/telegram.config"
 
 # Vérification des droits root
 if [[ $EUID -ne 0 ]]; then
@@ -71,18 +57,29 @@ log_message "INFO" "Téléchargement des nouveaux fichiers..."
 REPO_URL="https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2"
 
 # Téléchargement et installation du script principal
-if ! execute_command "wget -q '$REPO_URL/telegram.sh' -O '$SCRIPT_PATH'" "téléchargement du script"; then
+wget -q "$REPO_URL/telegram.sh" -O "$SCRIPT_PATH"
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec du téléchargement du script"
     exit 1
 fi
 
-if ! execute_command "chmod 750 '$SCRIPT_PATH'" "configuration des permissions du script"; then
+chmod 750 "$SCRIPT_PATH"
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec de la configuration des permissions"
     exit 1
 fi
 
 # Configuration PAM
-if ! configure_pam; then
-    log_message "ERROR" "Échec de la configuration PAM"
-    exit 1
+if ! grep -q "session.*telegram.sh" /etc/pam.d/su; then
+    log_message "INFO" "Configuration PAM manquante, installation..."
+    echo "session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\"" >> /etc/pam.d/su
+    if [ $? -ne 0 ]; then
+        log_message "ERROR" "Échec de la configuration PAM"
+        exit 1
+    fi
+    log_message "SUCCESS" "Configuration PAM installée"
+else
+    log_message "INFO" "Configuration PAM déjà présente"
 fi
 
 # Nettoyage
