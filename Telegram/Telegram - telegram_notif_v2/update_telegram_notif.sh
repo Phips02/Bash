@@ -12,6 +12,37 @@ function log_message() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message"
 }
 
+# Fonction pour vérifier la configuration
+check_config() {
+    local config="/etc/telegram/notif_connexion/telegram.config"
+    
+    # Vérification de l'existence du fichier
+    if [ ! -f "$config" ]; then
+        echo "Erreur : Le fichier de configuration n'existe pas : $config" >/dev/null
+        return 1
+    fi
+
+    # Vérification des permissions de lecture
+    if [ ! -r "$config" ]; then
+        echo "Erreur : Le fichier de configuration n'est pas lisible : $config" >/dev/null
+        return 1
+    fi
+
+    # Chargement de la configuration
+    source "$config"
+
+    # Vérification des variables requises
+    local required_vars=("TELEGRAM_BOT_TOKEN" "TELEGRAM_CHAT_ID" "BASE_DIR" "CONFIG_DIR" "SCRIPT_PATH" "CONFIG_PATH")
+    for var in "${required_vars[@]}"; do
+        if [ -z "${!var}" ]; then
+            echo "Erreur : Variable $var non définie dans $config" >/dev/null
+            return 1
+        fi
+    done
+
+    return 0
+}
+
 ###############################################################################
 # SECTION 0 : INITIALISATION DE LA CONFIGURATION
 ###############################################################################
