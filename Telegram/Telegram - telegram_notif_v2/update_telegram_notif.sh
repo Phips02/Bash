@@ -2,7 +2,7 @@
 
 ###############################################################################
 # Script de mise à jour des notifications Telegram
-# Version 3.3
+# Version 3.4
 ###############################################################################
 
 # Fonction pour le logging avec horodatage et niveau
@@ -16,30 +16,47 @@ function log_message() {
 check_config() {
     local config="/etc/telegram/notif_connexion/telegram.config"
     
-    # Vérification de l'existence du fichier
+    log_message "INFO" "Vérification de la configuration..."
     if [ ! -f "$config" ]; then
-        echo "Erreur : Le fichier de configuration n'existe pas : $config" >/dev/null
+        log_message "ERROR" "Le fichier de configuration n'existe pas : $config"
         return 1
     fi
 
-    # Vérification des permissions de lecture
     if [ ! -r "$config" ]; then
-        echo "Erreur : Le fichier de configuration n'est pas lisible : $config" >/dev/null
+        log_message "ERROR" "Le fichier de configuration n'est pas lisible : $config"
         return 1
     fi
 
-    # Chargement de la configuration
-    source "$config"
+    if ! safe_source "$config"; then
+        return 1
+    fi
 
-    # Vérification des variables requises
     local required_vars=("TELEGRAM_BOT_TOKEN" "TELEGRAM_CHAT_ID" "BASE_DIR" "CONFIG_DIR" "SCRIPT_PATH" "CONFIG_PATH")
     for var in "${required_vars[@]}"; do
         if [ -z "${!var}" ]; then
-            echo "Erreur : Variable $var non définie dans $config" >/dev/null
+            log_message "ERROR" "Variable $var non définie dans $config"
             return 1
         fi
     done
 
+    return 0
+}
+
+# Amélioration de la fonction source pour tracer les erreurs
+function safe_source() {
+    local config_file="$1"
+    if [ ! -f "$config_file" ]; then
+        log_message "ERROR" "Fichier de configuration introuvable: $config_file"
+        return 1
+    fi
+    
+    if ! source "$config_file" 2>/tmp/source_error.log; then
+        local error=$(cat /tmp/source_error.log)
+        log_message "ERROR" "Échec du chargement de $config_file: $error"
+        rm -f /tmp/source_error.log
+        return 1
+    fi
+    rm -f /tmp/source_error.log
     return 0
 }
 
@@ -54,7 +71,10 @@ mkdir -p "$BASE_DIR" "$CONFIG_DIR"
 
 # Sauvegarde des tokens existants si le fichier existe
 if [ -f "$CONFIG_DIR/telegram.config" ]; then
-    source "$CONFIG_DIR/telegram.config"
+    if ! safe_source "$CONFIG_DIR/telegram.config"; then
+        log_message "ERROR" "Impossible de charger la configuration existante"
+        exit 1
+    fi
     OLD_TOKEN="${TELEGRAM_BOT_TOKEN}"
     OLD_CHAT_ID="${TELEGRAM_CHAT_ID}"
 fi
@@ -371,3 +391,27 @@ rm -f update_telegram_notif.sh* install_telegram_notif.sh*
 # Message de fin
 log_message "SUCCESS" "Mise à jour terminée avec succès!"
 log_message "INFO" "Redémarrez votre session pour activer les changements"
+
+# Ajout de la gestion des erreurs pour les commandes critiques
+function execute_command() {
+    local cmd="$1"
+    local description="$2"
+    
+    if ! eval "$cmd" 2>/tmp/cmd_error.log; then
+        local error=$(cat /tmp/cmd_error.log)
+        log_message "ERROR" "Échec de $description: $error"
+        rm -f /tmp/cmd_error.log
+        return 1
+    fi
+    rm -f /tmp/cmd_error.log
+    return 0
+}
+
+# Exemple d'utilisation pour les commandes critiques
+if ! execute_command "chmod 640 \"$CONFIG_DIR/telegram.config\"" "modification des permissions"; then
+    exit 1
+fi
+
+if ! execute_command "chown root:telegramnotif \"$CONFIG_DIR/telegram.config\"" "modification du propriétaire"; then
+    exit 1
+fi
