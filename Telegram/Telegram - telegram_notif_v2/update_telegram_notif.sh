@@ -2,7 +2,7 @@
 
 ###############################################################################
 # Script de mise à jour des notifications Telegram
-# Version 3.0
+# Version 3.1
 #
 # Ce script permet de :
 # - Mettre à jour les scripts de notification Telegram
@@ -64,7 +64,7 @@ check_config() {
     if [ ! -r "$config" ]; then
         log_message "ERROR" "Le fichier de configuration n'est pas lisible : $config"
         return 1
-    }
+    fi
 
     # Chargement et vérification des variables requises
     source "$config"
