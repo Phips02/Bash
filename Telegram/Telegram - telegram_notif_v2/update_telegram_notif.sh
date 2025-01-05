@@ -59,22 +59,23 @@ PAM_FILE="/etc/pam.d/su"
 
 log_message "INFO" "Vérification de la configuration PAM..."
 
-# Supprimer toutes les anciennes configurations Telegram
+# Nettoyer complètement toutes les configurations Telegram
 if grep -q "telegram" "$PAM_FILE"; then
-    log_message "INFO" "Suppression des anciennes configurations PAM..."
-    sed -i '/telegram/d' "$PAM_FILE"
+    log_message "INFO" "Nettoyage des anciennes configurations PAM..."
+    # Créer un fichier temporaire sans les lignes Telegram
+    grep -v "telegram" "$PAM_FILE" > "$PAM_FILE.tmp"
     if [ $? -ne 0 ]; then
-        log_message "ERROR" "Échec de la suppression des anciennes configurations PAM"
+        log_message "ERROR" "Échec du nettoyage des anciennes configurations PAM"
+        rm -f "$PAM_FILE.tmp"
         exit 1
     fi
+    # Remplacer le fichier original
+    mv "$PAM_FILE.tmp" "$PAM_FILE"
 fi
 
-# Ajouter la nouvelle configuration
+# Ajouter la nouvelle configuration proprement
 log_message "INFO" "Installation de la nouvelle configuration PAM..."
-{
-    echo "# Notification Telegram pour su"
-    echo "$PAM_LINE"
-} >> "$PAM_FILE"
+printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$PAM_FILE"
 
 if [ $? -ne 0 ]; then
     log_message "ERROR" "Échec de l'installation de la configuration PAM"
