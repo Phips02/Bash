@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.44"
+TELEGRAM_VERSION="3.45"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -93,17 +93,18 @@ fi
 print_log "INFO" "update.sh" "Téléchargement des nouveaux fichiers..."
 REPO_URL="https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2"
 
-# Créer un répertoire temporaire sécurisé
-TEMP_DIR=$(mktemp -d)
-cd "$TEMP_DIR"
+# Téléchargement et installation du script principal
+wget -q "$REPO_URL/telegram.sh" -O "$SCRIPT_PATH"
+if [ $? -ne 0 ]; then
+    print_log "ERROR" "update.sh" "Échec du téléchargement du script"
+    exit 1
+fi
 
-# Télécharger et exécuter le script
-wget -qO update_telegram_notif.sh --no-cache https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/update_telegram_notif.sh && \
-chmod +x update_telegram_notif.sh && \
-./update_telegram_notif.sh
-
-# Nettoyage
-rm -rf "$TEMP_DIR"
+chmod 750 "$SCRIPT_PATH"
+if [ $? -ne 0 ]; then
+    print_log "ERROR" "update.sh" "Échec de la configuration des permissions"
+    exit 1
+fi
 
 # Configuration PAM
 PAM_FILE="/etc/pam.d/su"
@@ -162,8 +163,7 @@ echo '
 # Notification Telegram pour connexions SSH et su
 if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
     if [ -r '"$CONFIG_DIR"'/telegram.config ]; then
-        source '"$CONFIG_DIR"'/telegram.config 2>/dev/null
-        $SCRIPT_PATH &>/dev/null || true
+        sudo '"$SCRIPT_PATH"' &>/dev/null || true
     fi
 fi' >> "$TMP_BASHRC"
 
