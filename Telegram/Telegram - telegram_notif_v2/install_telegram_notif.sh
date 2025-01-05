@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.33"
+TELEGRAM_VERSION="3.34"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -281,8 +281,6 @@ print_log "INFO" "install.sh" "Test de l'installation..."
 "$BASE_DIR/telegram.sh" &
 test_pid=$!
 
-print_log "SUCCESS" "install.sh" "Installation réussie!"
-
 # Attendre la fin du test
 wait $test_pid
 
@@ -295,3 +293,5 @@ fi
 
 # Message final
 print_log "SUCCESS" "install.sh" "Installation terminée avec succès!"
+echo "" # Ajout d'une ligne vide pour un retour propre
+exit 0
