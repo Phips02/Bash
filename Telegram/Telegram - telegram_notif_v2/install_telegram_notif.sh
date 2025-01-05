@@ -193,7 +193,7 @@ print_log "INFO" "install.sh" "Création du fichier de configuration..."
 cat > "$CONFIG_DIR/telegram.config" << EOF
 ###############################################################################
 # Configuration Telegram pour les notifications de connexion
-# Version 4.5
+# Version 4.7
 ###############################################################################
 
 # Configuration du bot
