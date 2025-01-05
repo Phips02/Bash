@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="4.11"
+TELEGRAM_VERSION="4.12"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -188,8 +188,10 @@ awk '
 printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$TMP_PAM"
 mv "$TMP_PAM" "$PAM_FILE"
 
-# Vérification de la mise à jour PAM
-if ! grep -q "telegram.sh" "$PAM_FILE"; then
+# Vérifier si la configuration PAM existe déjà et est correcte
+if grep -q "^session.*pam_exec\.so.*telegram\.sh" "$PAM_FILE"; then
+    print_log "INFO" "update.sh" "Configuration PAM déjà présente et correcte"
+else
     print_log "ERROR" "update.sh" "Échec de la mise à jour PAM"
     print_log "ERROR" "update.sh" "Application manuelle : ajouter au fichier $PAM_FILE :"
     print_log "INFO" "update.sh" "# Notification Telegram pour su"
@@ -234,8 +236,10 @@ mv "$TMP_BASHRC" /etc/bash.bashrc
 chmod 644 /etc/bash.bashrc
 chown root:root /etc/bash.bashrc
 
-# Vérification de la mise à jour bash.bashrc
-if ! grep -q "telegram.sh" /etc/bash.bashrc; then
+# Vérifier si la configuration bash.bashrc existe déjà et est correcte
+if grep -q "source.*telegram\.config.*telegram\.sh" /etc/bash.bashrc; then
+    print_log "INFO" "update.sh" "Configuration bash.bashrc déjà présente et correcte"
+else
     print_log "ERROR" "update.sh" "Échec de la mise à jour bash.bashrc"
     print_log "ERROR" "update.sh" "Application manuelle : ajouter au fichier /etc/bash.bashrc :"
     print_log "INFO" "update.sh" '# Notification Telegram pour connexions SSH et su
