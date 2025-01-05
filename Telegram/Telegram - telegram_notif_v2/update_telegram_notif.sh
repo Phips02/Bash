@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.43"
+TELEGRAM_VERSION="3.44"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -177,17 +177,17 @@ print_log "SUCCESS" "update.sh" "Configurations système mises à jour"
 print_log "INFO" "update.sh" "Configuration des permissions..."
 
 # Permissions des répertoires
-chmod 750 "$BASE_DIR"
-chmod 750 "$CONFIG_DIR"
-chmod 750 "$BACKUP_DIR"
+chmod 750 "$BASE_DIR"           # rwxr-x--- - Accès restreint au groupe
+chmod 750 "$CONFIG_DIR"         # rwxr-x--- - Accès restreint au groupe
+chmod 750 "$BACKUP_DIR"         # rwxr-x--- - Accès restreint au groupe
 
 # Permissions des fichiers
-chmod 600 "$CONFIG_PATH"  # rw------- - Lecture/écriture root uniquement
-chmod 750 "$SCRIPT_PATH"  # rwxr-x--- - Exécution groupe uniquement
+chmod 640 "$CONFIG_PATH"        # rw-r----- - Lecture groupe uniquement
+chmod 750 "$SCRIPT_PATH"        # rwxr-x--- - Exécution groupe uniquement
 
 # Propriétaire et groupe
 chown -R root:telegramnotif "$BASE_DIR" "$CONFIG_DIR"
-chown root:root "$CONFIG_PATH"  # Config accessible uniquement par root
+chown root:telegramnotif "$CONFIG_PATH"  # Config accessible par le groupe telegramnotif
 
 # Réappliquer l'attribut immutable
 chattr +i "$CONFIG_PATH"
