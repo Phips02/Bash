@@ -4,15 +4,15 @@
 # Script de mise à jour des notifications Telegram
 ###############################################################################
 
-# Version du système
-TELEGRAM_VERSION="3.6"
-
 # Fonction pour le logging avec horodatage et niveau
 function log_message() {
     local level="$1"
     local message="$2"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message"
 }
+
+# Version du système
+TELEGRAM_VERSION="3.6"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
