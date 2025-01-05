@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="4.12"
+TELEGRAM_VERSION="4.13"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -162,9 +162,12 @@ print_log "INFO" "update.sh" "Mise à jour des configurations système..."
 # 1. Configuration PAM
 print_log "INFO" "update.sh" "Configuration PAM..."
 PAM_FILE="/etc/pam.d/su"
+
+# Debug: Afficher le contenu actuel du fichier PAM
+print_log "DEBUG" "update.sh" "Contenu actuel de PAM :"
+grep "pam_exec.so.*telegram" "$PAM_FILE" || true
+
 # IMPORTANT: Ne pas modifier la double définition de PAM_LINE
-# Cette syntaxe particulière est nécessaire pour éviter des problèmes
-# d'interprétation des variables dans le contexte PAM
 PAM_LINE='PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && $SCRIPT_PATH""'
 
 TMP_PAM=$(mktemp)
@@ -189,8 +192,11 @@ printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$TMP_PAM"
 mv "$TMP_PAM" "$PAM_FILE"
 
 # Vérifier si la configuration PAM existe déjà et est correcte
-if grep -q "^session.*pam_exec\.so.*telegram\.sh" "$PAM_FILE"; then
+if grep -q "pam_exec.so.*telegram" "$PAM_FILE"; then
     print_log "INFO" "update.sh" "Configuration PAM déjà présente et correcte"
+    # Debug: Afficher la ligne trouvée
+    print_log "DEBUG" "update.sh" "Ligne PAM trouvée :"
+    grep "pam_exec.so.*telegram" "$PAM_FILE"
 else
     print_log "ERROR" "update.sh" "Échec de la mise à jour PAM"
     print_log "ERROR" "update.sh" "Application manuelle : ajouter au fichier $PAM_FILE :"
