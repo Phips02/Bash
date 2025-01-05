@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="4.7"
+TELEGRAM_VERSION="4.8"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -23,6 +23,13 @@ SCRIPT_PATH="$BASE_DIR/telegram.sh"
 CONFIG_PATH="$CONFIG_DIR/telegram.config"
 
 print_log "INFO" "update.sh" "Exécution du script de mise à jour version $TELEGRAM_VERSION"
+
+# Vérification du groupe telegramnotif
+if ! getent group telegramnotif > /dev/null; then
+    print_log "ERROR" "update.sh" "Le groupe telegramnotif n'existe pas"
+    print_log "ERROR" "update.sh" "Veuillez d'abord installer le système avec install_telegram_notif.sh"
+    exit 1
+fi
 
 # Vérification de l'installation existante
 print_log "INFO" "update.sh" "Vérification de l'installation..."
@@ -109,21 +116,36 @@ if [ $? -ne 0 ]; then
 fi
 
 # Configuration des permissions
-chmod 750 "$SCRIPT_PATH"
-chmod 640 "$BASE_DIR/telegram.functions.sh"
+print_log "INFO" "update.sh" "Configuration des permissions..."
 
-# Configuration PAM
-PAM_FILE="/etc/pam.d/su"
-# IMPORTANT: Ne pas modifier la double définition de PAM_LINE
-# Cette syntaxe particulière est nécessaire pour éviter des problèmes
-# d'interprétation des variables dans le contexte PAM
-PAM_LINE='PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && $SCRIPT_PATH""'
+# Permissions des répertoires
+chmod 755 "$BASE_DIR"           # rwxr-xr-x - Permet l'accès au dossier
+chmod 750 "$CONFIG_DIR"         # rwxr-x--- - Restreint l'accès à la config au groupe
+chmod 755 "$BACKUP_DIR"         # rwxr-xr-x - Permet l'accès aux sauvegardes
+
+# Permissions des fichiers
+chmod 640 "$CONFIG_PATH"        # rw-r----- - Lecture groupe uniquement
+chmod 755 "$SCRIPT_PATH"        # rwxr-xr-x - Exécutable par tous
+chmod 644 "$BASE_DIR/telegram.functions.sh"  # rw-r--r-- - Lecture pour tous
+
+# Propriétaire et groupe
+chown root:telegramnotif "$CONFIG_DIR"
+chown root:telegramnotif "$CONFIG_DIR/telegram.config"
+chown root:telegramnotif "$BASE_DIR/telegram.sh"
+chown root:telegramnotif "$BASE_DIR/telegram.functions.sh"
+
 
 # Mise à jour des configurations système
 print_log "INFO" "update.sh" "Mise à jour des configurations système..."
 
 # 1. Configuration PAM
 print_log "INFO" "update.sh" "Configuration PAM..."
+PAM_FILE="/etc/pam.d/su"
+# IMPORTANT: Ne pas modifier la double définition de PAM_LINE
+# Cette syntaxe particulière est nécessaire pour éviter des problèmes
+# d'interprétation des variables dans le contexte PAM
+PAM_LINE='PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && $SCRIPT_PATH""'
+
 TMP_PAM=$(mktemp)
 
 # Nettoyer et mettre à jour PAM
@@ -144,6 +166,7 @@ awk '
 
 printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$TMP_PAM"
 mv "$TMP_PAM" "$PAM_FILE"
+
 
 # 2. Configuration bash.bashrc
 print_log "INFO" "update.sh" "Configuration bash.bashrc..."
@@ -182,29 +205,6 @@ chmod 644 /etc/bash.bashrc
 chown root:root /etc/bash.bashrc
 
 print_log "SUCCESS" "update.sh" "Configurations système mises à jour"
-
-# Configuration des permissions
-print_log "INFO" "update.sh" "Configuration des permissions..."
-
-# Permissions des répertoires
-chmod 755 "$BASE_DIR"
-chmod 755 "$CONFIG_DIR"
-chmod 755 "$BACKUP_DIR"
-
-# Permissions des fichiers
-chmod 644 "$CONFIG_PATH"  # Lecture pour tous
-chmod 755 "$SCRIPT_PATH"  # Exécution pour tous
-
-# Propriétaire et groupe
-chown -R root:root "$BASE_DIR" "$CONFIG_DIR"
-chmod g+rx "$CONFIG_DIR"  # Lecture et exécution pour le groupe
-chmod o+rx "$CONFIG_DIR"  # Lecture et exécution pour les autres
-
-if [ $? -ne 0 ]; then
-    print_log "ERROR" "update.sh" "Échec de la configuration des permissions"
-    exit 1
-fi
-print_log "SUCCESS" "update.sh" "Permissions configurées"
 
 # Nettoyage des sauvegardes
 print_log "INFO" "update.sh" "Conservation de la dernière sauvegarde uniquement"

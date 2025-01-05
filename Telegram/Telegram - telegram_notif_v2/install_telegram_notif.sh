@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="4.7"
+TELEGRAM_VERSION="4.8"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -193,7 +193,7 @@ print_log "INFO" "install.sh" "Création du fichier de configuration..."
 cat > "$CONFIG_DIR/telegram.config" << EOF
 ###############################################################################
 # Configuration Telegram pour les notifications de connexion
-# Version 4.7
+# Version 4.8
 ###############################################################################
 
 # Configuration du bot
