@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="4.15"
+TELEGRAM_VERSION="4.16"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -163,10 +163,6 @@ print_log "INFO" "update.sh" "Mise à jour des configurations système..."
 print_log "INFO" "update.sh" "Configuration PAM..."
 PAM_FILE="/etc/pam.d/su"
 
-# Debug: Afficher le contenu actuel du fichier PAM
-print_log "DEBUG" "update.sh" "Contenu actuel de PAM :"
-grep "pam_exec.so.*telegram" "$PAM_FILE" || true
-
 # IMPORTANT: Ne pas modifier la double définition de PAM_LINE
 PAM_LINE='PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && $SCRIPT_PATH""'
 
@@ -212,7 +208,9 @@ fi
 print_log "INFO" "update.sh" "Configuration bash.bashrc..."
 
 # Vérifier si la configuration bash.bashrc existe déjà
-if grep -q "source.*telegram\.config.*telegram\.sh" /etc/bash.bashrc; then
+if grep -q "if \[ -r.*telegram/notif_connexion/telegram\.config \]" /etc/bash.bashrc && \
+   grep -q "source.*telegram/notif_connexion/telegram\.config" /etc/bash.bashrc && \
+   grep -q "\$SCRIPT_PATH.*&>/dev/null.*true" /etc/bash.bashrc; then
     print_log "INFO" "update.sh" "Configuration bash.bashrc déjà présente et correcte"
 else
     TMP_BASHRC=$(mktemp)
@@ -249,8 +247,10 @@ fi' >> "$TMP_BASHRC"
     chmod 644 /etc/bash.bashrc
     chown root:root /etc/bash.bashrc
 
-    # Vérifier si la mise à jour a réussi
-    if ! grep -q "source.*telegram\.config.*telegram\.sh" /etc/bash.bashrc; then
+    # Vérifier si la mise à jour a réussi avec la même vérification précise
+    if ! (grep -q "if \[ -r.*telegram/notif_connexion/telegram\.config \]" /etc/bash.bashrc && \
+          grep -q "source.*telegram/notif_connexion/telegram\.config" /etc/bash.bashrc && \
+          grep -q "\$SCRIPT_PATH.*&>/dev/null.*true" /etc/bash.bashrc); then
         print_log "ERROR" "update.sh" "Échec de la mise à jour bash.bashrc"
         print_log "ERROR" "update.sh" "Application manuelle : ajouter au fichier /etc/bash.bashrc :"
         print_log "INFO" "update.sh" '# Notification Telegram pour connexions SSH et su
