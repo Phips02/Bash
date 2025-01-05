@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.24"
+TELEGRAM_VERSION="3.28"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -79,17 +79,27 @@ if ! check_config; then
 fi
 
 # Exécution en arrière-plan si ce n'est pas déjà le cas
-if [ "$1" != "background" ]; then
+if [ "$1" != "background" ] && [ "$1" != "silent" ]; then
     log_message "INFO" "Démarrage en arrière-plan..."
-    $0 background & disown
+    $0 silent & disown
     exit 0
 fi
 
+# Mode silencieux pour les tests d'installation
+if [ "$1" = "silent" ]; then
+    # Rediriger tous les logs vers /dev/null
+    exec 1>/dev/null
+    exec 2>/dev/null
+fi
+
 # Vérification des dépendances
-log_message "INFO" "Vérification des dépendances..."
+if [ "$1" != "silent" ]; then
+    log_message "INFO" "Vérification des dépendances..."
+fi
+
 for dep in jq curl; do
     if ! command -v "$dep" &> /dev/null; then
-        log_message "ERROR" "Dépendance manquante : $dep"
+        [ "$1" != "silent" ] && log_message "ERROR" "Dépendance manquante : $dep"
         exit 1
     fi
 done
@@ -216,10 +226,13 @@ IP Source : $IP_LOCAL %0A\
 IP Publique : $IP_PUBLIC %0A\
 Pays : $COUNTRY"
 
-if ! telegram_text_send "$TEXT"; then
-    log_message "ERROR" "Échec de l'envoi de la notification"
-    exit 1
+# Envoi du message uniquement si pas en mode silencieux
+if [ "$1" != "silent" ]; then
+    if ! telegram_text_send "$TEXT"; then
+        log_message "ERROR" "Échec de l'envoi de la notification"
+        exit 1
+    fi
+    log_message "SUCCESS" "Notification envoyée avec succès"
 fi
 
-log_message "SUCCESS" "Notification envoyée avec succès"
 exit 0
