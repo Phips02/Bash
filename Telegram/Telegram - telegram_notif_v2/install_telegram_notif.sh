@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.11"
+TELEGRAM_VERSION="3.25"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -25,7 +25,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 # Vérification et installation des dépendances
-for pkg in curl jq bash; do
+for pkg in curl jq bash adduser; do
     log_message "INFO" "Vérification de $pkg..."
     if ! command -v "$pkg" &> /dev/null; then
         log_message "WARNING" "$pkg n'est pas installé. Installation en cours..."
@@ -235,6 +235,8 @@ if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
     source '"$CONFIG_DIR"'/telegram.config
     $SCRIPT_PATH &>/dev/null
 fi' >> /etc/bash.bashrc
+    chmod 644 /etc/bash.bashrc
+    chown root:root /etc/bash.bashrc
     if [ $? -ne 0 ]; then
         log_message "ERROR" "Échec de la configuration de bash.bashrc"
         exit 1
@@ -271,6 +273,3 @@ if [ $? -ne 0 ]; then
 fi
 
 exit 0
-
-
-
