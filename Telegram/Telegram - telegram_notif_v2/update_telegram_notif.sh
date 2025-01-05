@@ -12,7 +12,7 @@ function log_message() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.12"
+TELEGRAM_VERSION="3.13"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -79,23 +79,19 @@ awk '
     /telegram/ { next }                          # Ignorer les lignes contenant telegram
     /^[[:space:]]*$/ {                          # Gestion des lignes vides
         if (!prev_empty) {
-            print
+            printf "\n"                          # Utiliser printf au lieu de print
             prev_empty = 1
         }
         next
     }
     {                                           # Lignes non vides
-        print
+        printf "%s\n", $0                       # Utiliser printf avec \n explicite
         prev_empty = 0
     }
 ' "$PAM_FILE" | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' > "$TMP_PAM"  # Supprimer les lignes vides à la fin
 
-# 2. Ajouter la nouvelle configuration
-{
-    echo ""
-    echo "# Notification Telegram pour su"
-    echo "$PAM_LINE"
-} >> "$TMP_PAM"
+# 2. Ajouter la nouvelle configuration sans ligne vide supplémentaire
+printf "\n# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$TMP_PAM"
 
 # 3. Installer la nouvelle configuration
 mv "$TMP_PAM" "$PAM_FILE"
@@ -146,7 +142,7 @@ fi
 
 # Auto-destruction du script
 log_message "INFO" "Auto-destruction du script..."
-rm -f "$0"
+rm -f "$0" "/tmp/update_telegram_notif.sh*"
 if [ $? -ne 0 ]; then
     log_message "WARNING" "Impossible de supprimer le script de mise à jour"
 fi
