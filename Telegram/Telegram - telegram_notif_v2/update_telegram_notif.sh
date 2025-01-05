@@ -4,16 +4,16 @@
 # Script de mise à jour des notifications Telegram
 ###############################################################################
 
-# Fonction pour le logging avec niveau et composant
+# Fonction pour le logging avec horodatage, niveau et nom du script
 function print_log() {
     local level="$1"
-    local component="$2"
+    local script="$2"
     local message="$3"
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] [$component] $message"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] [$script] $message"
 }
 
 # Version du système
-TELEGRAM_VERSION="3.21"
+TELEGRAM_VERSION="3.41"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -22,19 +22,61 @@ BACKUP_DIR="$CONFIG_DIR/backup"
 SCRIPT_PATH="$BASE_DIR/telegram.sh"
 CONFIG_PATH="$CONFIG_DIR/telegram.config"
 
-print_log "info" "update" "Exécution du script de mise à jour version $TELEGRAM_VERSION"
+print_log "INFO" "update.sh" "Exécution du script de mise à jour version $TELEGRAM_VERSION"
+
+# Vérification de l'installation existante
+print_log "INFO" "update.sh" "Vérification de l'installation..."
+
+# Vérifier les fichiers et répertoires essentiels
+REQUIRED_FILES=(
+    "$BASE_DIR/telegram.sh"
+    "$CONFIG_DIR/telegram.config"
+)
+
+REQUIRED_DIRS=(
+    "$BASE_DIR"
+    "$CONFIG_DIR"
+)
+
+# Vérifier les répertoires
+for dir in "${REQUIRED_DIRS[@]}"; do
+    if [ ! -d "$dir" ]; then
+        print_log "ERROR" "update.sh" "Installation incomplète : répertoire manquant $dir"
+        print_log "ERROR" "update.sh" "Veuillez d'abord installer le système avec install_telegram_notif.sh"
+        exit 1
+    fi
+done
+
+# Vérifier les fichiers
+for file in "${REQUIRED_FILES[@]}"; do
+    if [ ! -f "$file" ]; then
+        print_log "ERROR" "update.sh" "Installation incomplète : fichier manquant $file"
+        print_log "ERROR" "update.sh" "Veuillez d'abord installer le système avec install_telegram_notif.sh"
+        exit 1
+    fi
+done
+
+print_log "SUCCESS" "update.sh" "Installation existante détectée"
 
 # Vérification des droits root
 if [[ $EUID -ne 0 ]]; then
-    print_log "error" "update" "Ce script doit être exécuté en tant que root"
+    print_log "ERROR" "update.sh" "Ce script doit être exécuté en tant que root"
     exit 1
 fi
 
-# Information sur la version actuelle
-if [ -f "$CONFIG_PATH" ]; then
-    CURRENT_VERSION=$(grep "TELEGRAM_VERSION=" "$CONFIG_PATH" | cut -d'"' -f2)
-    print_log "info" "update" "Version actuelle : $CURRENT_VERSION"
-fi
+# Vérification des dépendances
+for pkg in curl jq bash adduser; do
+    print_log "INFO" "update.sh" "Vérification de $pkg..."
+    if ! command -v "$pkg" &> /dev/null; then
+        print_log "WARNING" "update.sh" "$pkg n'est pas installé. Installation en cours..."
+        apt-get update && apt-get install -y "$pkg"
+        if [ $? -ne 0 ]; then
+            print_log "ERROR" "update.sh" "Échec de l'installation de $pkg"
+            exit 1
+        fi
+        print_log "SUCCESS" "update.sh" "$pkg installé avec succès"
+    fi
+done
 
 # Création des répertoires nécessaires
 mkdir -p "$BASE_DIR" "$CONFIG_DIR" "$BACKUP_DIR"
@@ -44,23 +86,23 @@ if [ -f "$CONFIG_PATH" ]; then
     BACKUP_DATE=$(date +%Y%m%d_%H%M%S)
     cp "$CONFIG_PATH" "$BACKUP_DIR/telegram.config.$BACKUP_DATE"
     cp "$SCRIPT_PATH" "$BACKUP_DIR/telegram.sh.$BACKUP_DATE"
-    print_log "info" "update" "Sauvegarde créée: $BACKUP_DATE"
+    print_log "INFO" "update.sh" "Sauvegarde créée: $BACKUP_DATE"
 fi
 
 # Mise à jour des fichiers
-print_log "info" "update" "Téléchargement des nouveaux fichiers..."
+print_log "INFO" "update.sh" "Téléchargement des nouveaux fichiers..."
 REPO_URL="https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2"
 
 # Téléchargement et installation du script principal
 wget -q "$REPO_URL/telegram.sh" -O "$SCRIPT_PATH"
 if [ $? -ne 0 ]; then
-    print_log "error" "update" "Échec du téléchargement du script"
+    print_log "ERROR" "update.sh" "Échec du téléchargement du script"
     exit 1
 fi
 
 chmod 750 "$SCRIPT_PATH"
 if [ $? -ne 0 ]; then
-    print_log "error" "update" "Échec de la configuration des permissions"
+    print_log "ERROR" "update.sh" "Échec de la configuration des permissions"
     exit 1
 fi
 
@@ -68,46 +110,72 @@ fi
 PAM_FILE="/etc/pam.d/su"
 PAM_LINE='PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && $SCRIPT_PATH""'
 
-print_log "info" "update" "Configuration PAM..."
+# Mise à jour des configurations système
+print_log "INFO" "update.sh" "Mise à jour des configurations système..."
 
-# Créer un fichier temporaire
+# 1. Configuration PAM
+print_log "INFO" "update.sh" "Configuration PAM..."
 TMP_PAM=$(mktemp)
 
-# 1. Copier le contenu existant en préservant la structure mais en filtrant Telegram
+# Nettoyer et mettre à jour PAM
 awk '
     BEGIN { prev_empty = 0 }
-    /^[[:space:]]*#.*[Tt]elegram/ { next }      # Ignorer les commentaires Telegram
-    /telegram/ { next }                          # Ignorer les lignes contenant telegram
-    /^[[:space:]]*#$/ { next }                  # Ignorer les lignes avec juste un #
+    /^[[:space:]]*#.*[Tt]elegram/ { next }
+    /telegram/ { next }
+    /^[[:space:]]*#$/ { next }
     {
-        if ($0 ~ /^[[:space:]]*$/) {            # Ligne vide
-            if (!prev_empty) {
-                prev_empty = 1
-            }
-        } else {                                 # Ligne non vide
+        if ($0 ~ /^[[:space:]]*$/) {
+            if (!prev_empty) { prev_empty = 1 }
+        } else {
             printf "%s\n", $0
             prev_empty = 0
         }
     }
 ' "$PAM_FILE" > "$TMP_PAM"
 
-# 2. Ajouter la nouvelle configuration
 printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$TMP_PAM"
-
-# 3. Installer la nouvelle configuration
 mv "$TMP_PAM" "$PAM_FILE"
-print_log "success" "update" "Configuration PAM mise à jour"
 
-# Nettoyage
-print_log "info" "update" "Nettoyage des anciennes sauvegardes..."
-cd "$BACKUP_DIR" && ls -t telegram.* | tail -n +11 | xargs -r rm
+# 2. Configuration bash.bashrc
+print_log "INFO" "update.sh" "Configuration bash.bashrc..."
+TMP_BASHRC=$(mktemp)
 
-# Message final
-print_log "success" "update" "Mise à jour terminée avec succès!"
-print_log "info" "update" "Redémarrez votre session pour activer les changements"
+# Nettoyer et mettre à jour bash.bashrc
+awk '
+    BEGIN { empty_lines = 0 }
+    /^# Notification Telegram/ { skip = 1; next }
+    /^if.*telegram/ { skip = 1; next }
+    /telegram.sh/ { skip = 1; next }
+    skip == 1 && /^fi/ { skip = 0; next }
+    !skip {
+        if ($0 ~ /^[[:space:]]*$/) {
+            empty_lines++
+            if (empty_lines <= 1) print
+        } else {
+            empty_lines = 0
+            print
+        }
+    }
+' /etc/bash.bashrc > "$TMP_BASHRC"
+
+# Ajouter la nouvelle configuration
+echo '
+# Notification Telegram pour connexions SSH et su
+if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
+    if [ -r '"$CONFIG_DIR"'/telegram.config ]; then
+        source '"$CONFIG_DIR"'/telegram.config 2>/dev/null
+        $SCRIPT_PATH &>/dev/null || true
+    fi
+fi' >> "$TMP_BASHRC"
+
+mv "$TMP_BASHRC" /etc/bash.bashrc
+chmod 644 /etc/bash.bashrc
+chown root:root /etc/bash.bashrc
+
+print_log "SUCCESS" "update.sh" "Configurations système mises à jour"
 
 # Configuration des permissions
-print_log "info" "update" "Configuration des permissions..."
+print_log "INFO" "update.sh" "Configuration des permissions..."
 
 # Permissions des répertoires
 chmod 755 "$BASE_DIR"
@@ -124,28 +192,30 @@ chmod g+rx "$CONFIG_DIR"  # Lecture et exécution pour le groupe
 chmod o+rx "$CONFIG_DIR"  # Lecture et exécution pour les autres
 
 if [ $? -ne 0 ]; then
-    print_log "error" "update" "Échec de la configuration des permissions"
+    print_log "ERROR" "update.sh" "Échec de la configuration des permissions"
     exit 1
 fi
-print_log "success" "update" "Permissions configurées"
+print_log "SUCCESS" "update.sh" "Permissions configurées"
 
-# Ajout au bash.bashrc
-if ! grep -q "\$SCRIPT_PATH" /etc/bash.bashrc; then
-    echo '
-# Notification Telegram pour connexions SSH et su
-if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
-    if [ -r '"$CONFIG_DIR"'/telegram.config ]; then
-        source '"$CONFIG_DIR"'/telegram.config 2>/dev/null
-        $SCRIPT_PATH &>/dev/null || true
-    fi
-fi' >> /etc/bash.bashrc
+# Nettoyage des sauvegardes
+print_log "INFO" "update.sh" "Conservation de la dernière sauvegarde uniquement"
+if [ -d "$BACKUP_DIR" ]; then
+    # Nettoyage des fichiers de configuration
+    cd "$BACKUP_DIR" && ls -t telegram.config.* 2>/dev/null | tail -n +2 | xargs -r rm
+    
+    # Nettoyage des scripts
+    cd "$BACKUP_DIR" && ls -t telegram.sh.* 2>/dev/null | tail -n +2 | xargs -r rm
 fi
 
 # Auto-destruction du script
-print_log "info" "update" "Auto-destruction du script..."
+print_log "INFO" "update.sh" "Auto-destruction du script..."
 rm -f "$0" /tmp/update_telegram_notif.sh*
 if [ $? -ne 0 ]; then
-    print_log "warning" "update" "Impossible de supprimer le script de mise à jour"
+    print_log "WARNING" "update.sh" "Impossible de supprimer le script de mise à jour"
 fi
+
+# Message final unique
+print_log "SUCCESS" "update.sh" "Mise à jour version $TELEGRAM_VERSION terminée avec succès"
+echo "" # Ajout d'une ligne vide pour un retour propre
 
 exit 0
