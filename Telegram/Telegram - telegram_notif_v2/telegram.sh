@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.10"
+TELEGRAM_VERSION="3.11"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -180,40 +180,33 @@ get_source_ip() {
 
 # Détection du type de connexion
 get_connection_type() {
-    log_message "INFO" "Détection du type de connexion..."
+    local type
     if [ -n "$SSH_CONNECTION" ]; then
-        echo "SSH"
+        type="SSH"
     elif [ -n "$PAM_TYPE" ]; then
-        echo "su/sudo"
+        type="su/sudo"
     else
-        echo "Local"
+        type="Local"
     fi
+    echo "$type"
 }
 
 # Récupération des informations système avec gestion d'erreurs
-log_message "INFO" "Récupération des informations système..."
-
 DATE=$(date "+%F %H:%M:%S")
 IP_DEVICE=$(hostname -I 2>/dev/null | cut -d " " -f1) || IP_DEVICE="Indisponible"
-MAC_ADDRESS=$(ip link show 2>/dev/null | grep ether | awk '{print $2}') || MAC_ADDRESS="Indisponible"
-IP_LOCAL=$(get_source_ip)
-CONNECTION_TYPE=$(get_connection_type)
+MAC_ADDRESS=$(ip link show 2>/dev/null | grep ether | head -n1 | awk '{print $2}') || MAC_ADDRESS="Indisponible"
+IP_LOCAL=$(get_source_ip 2>/dev/null) || IP_LOCAL="Indisponible"
+CONNECTION_TYPE=$(get_connection_type 2>/dev/null) || CONNECTION_TYPE="Indisponible"
 
 # Récupération des informations publiques avec gestion d'erreurs
-log_message "INFO" "Récupération des informations publiques..."
-IPINFO=$(curl -s ipinfo.io 2>/tmp/curl_error.log)
-
+IPINFO=$(curl -s ipinfo.io 2>/dev/null)
 if [ $? -ne 0 ]; then
-    local error=$(cat /tmp/curl_error.log)
-    log_message "ERROR" "Échec de la récupération des informations IP: $error"
     IP_PUBLIC="Indisponible"
     COUNTRY="Indisponible"
 else
     IP_PUBLIC=$(echo "$IPINFO" | jq -r '.ip // "Indisponible"')
     COUNTRY=$(echo "$IPINFO" | jq -r '.country // "Indisponible"')
 fi
-
-rm -f /tmp/curl_error.log
 
 # Construction et envoi du message
 TEXT="$DATE %0A\

@@ -142,7 +142,7 @@ fi
 
 # Auto-destruction du script
 log_message "INFO" "Auto-destruction du script..."
-rm -f "$0" "/tmp/update_telegram_notif.sh*"
+rm -f "$0" /tmp/update_telegram_notif.sh*
 if [ $? -ne 0 ]; then
     log_message "WARNING" "Impossible de supprimer le script de mise à jour"
 fi
