@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.37"
+TELEGRAM_VERSION="3.38"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -109,7 +109,7 @@ print_log "SUCCESS" "update.sh" "Configuration PAM mise à jour"
 # Nettoyage
 print_log "INFO" "update.sh" "Nettoyage des anciennes sauvegardes..."
 
-# Garder seulement les 5 dernières sauvegardes de chaque type
+# Garder seulement la dernière sauvegarde de chaque type
 if [ -d "$BACKUP_DIR" ]; then
     # Nettoyage des fichiers de configuration
     cd "$BACKUP_DIR" && ls -t telegram.config.* 2>/dev/null | tail -n +2 | xargs -r rm
@@ -117,7 +117,7 @@ if [ -d "$BACKUP_DIR" ]; then
     # Nettoyage des scripts
     cd "$BACKUP_DIR" && ls -t telegram.sh.* 2>/dev/null | tail -n +2 | xargs -r rm
     
-    print_log "INFO" "update.sh" "Conservation de la dernières sauvegarde uniquement"
+    print_log "INFO" "update.sh" "Conservation de la dernière sauvegarde uniquement"
 fi
 
 # Configuration des permissions
@@ -154,11 +154,20 @@ BASHRC_PERMS=$(stat -c %a /etc/bash.bashrc)
 
 # Nettoyer les anciennes configurations
 awk '
+    BEGIN { empty_lines = 0 }
     /^# Notification Telegram/ { skip = 1; next }
     /^if.*telegram/ { skip = 1; next }
     /telegram.sh/ { skip = 1; next }
     skip == 1 && /^fi/ { skip = 0; next }
-    skip != 1 { print }
+    !skip {
+        if ($0 ~ /^[[:space:]]*$/) {
+            empty_lines++
+            if (empty_lines <= 1) print
+        } else {
+            empty_lines = 0
+            print
+        }
+    }
 ' /etc/bash.bashrc > "$TMP_BASHRC"
 
 # Ajouter la nouvelle configuration
