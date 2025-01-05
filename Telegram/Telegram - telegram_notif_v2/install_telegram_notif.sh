@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.29"
+TELEGRAM_VERSION="3.30"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -245,9 +245,13 @@ fi' >> /etc/bash.bashrc
 fi
 
 # Configuration PAM
+PAM_FILE="/etc/pam.d/su"
+PAM_LINE='PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && $SCRIPT_PATH""'
+
+print_log "INFO" "install.sh" "Configuration PAM..."
+
 if ! grep -q "session.*telegram.sh" /etc/pam.d/su; then
-    echo "# Notification Telegram pour su
-session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\"" >> /etc/pam.d/su
+    printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$PAM_FILE"
     if [ $? -ne 0 ]; then
         print_log "ERROR" "install.sh" "Échec de la configuration PAM"
         exit 1
