@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="4.9"
+TELEGRAM_VERSION="4.10"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -25,9 +25,23 @@ CONFIG_PATH="$CONFIG_DIR/telegram.config"
 print_log "INFO" "update.sh" "Exécution du script de mise à jour version $TELEGRAM_VERSION"
 
 # Vérification de l'installation du système
-if [ ! -f "$SCRIPT_PATH" ] || [ ! -f "$CONFIG_PATH" ] || [ ! -d "$BASE_DIR" ]; then
+# Recherche du script telegram.sh
+FOUND_SCRIPT=$(find /usr/local/bin/ -name "telegram.sh" 2>/dev/null)
+if [ -z "$FOUND_SCRIPT" ]; then
     print_log "ERROR" "update.sh" "Le système de notification Telegram n'est pas installé"
     print_log "ERROR" "update.sh" "Veuillez d'abord installer le système avec install_telegram_notif.sh"
+    exit 1
+fi
+
+# Mise à jour des chemins
+SCRIPT_PATH="$FOUND_SCRIPT"
+BASE_DIR=$(dirname "$SCRIPT_PATH")
+print_log "INFO" "update.sh" "Script trouvé dans : $BASE_DIR"
+
+# Vérification des fichiers essentiels
+if [ ! -f "$SCRIPT_PATH" ] || [ ! -f "$CONFIG_PATH" ]; then
+    print_log "ERROR" "update.sh" "Fichiers système manquants"
+    print_log "ERROR" "update.sh" "Veuillez réinstaller le système avec install_telegram_notif.sh"
     exit 1
 fi
 
