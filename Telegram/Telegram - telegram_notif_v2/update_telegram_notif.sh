@@ -136,4 +136,11 @@ if [ -n "$PS1" ] && [ "$TERM" != "unknown" ]; then
 fi' >> /etc/bash.bashrc
 fi
 
+# Auto-destruction du script
+log_message "INFO" "Auto-destruction du script..."
+rm -f "$0"
+if [ $? -ne 0 ]; then
+    log_message "WARNING" "Impossible de supprimer le script de mise à jour"
+fi
+
 exit 0
