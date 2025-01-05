@@ -12,7 +12,7 @@ function log_message() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.8"
+TELEGRAM_VERSION="3.9"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -72,19 +72,37 @@ log_message "INFO" "Configuration PAM..."
 # Créer un fichier temporaire
 TMP_PAM=$(mktemp)
 
-# 1. Supprimer les lignes vides à la fin et les lignes contenant telegram
-sed -e '/^[[:space:]]*$/d' -e '/telegram/d' "$PAM_FILE" > "$TMP_PAM"
+# 1. Copier le contenu de base (sans les lignes telegram et les lignes vides à la fin)
+awk '
+    BEGIN { empty_lines = 0 }
+    /telegram/ { next }
+    /^[[:space:]]*$/ { empty_lines++; next }
+    { 
+        if (empty_lines > 0) {
+            for (i=0; i<empty_lines; i++) print ""
+            empty_lines = 0
+        }
+        print $0 
+    }
+' "$PAM_FILE" > "$TMP_PAM"
 
-# 2. Ajouter la nouvelle configuration avec une seule ligne vide
+# 2. Ajouter la nouvelle configuration
 {
     echo ""
     echo "# Notification Telegram pour su"
     echo "$PAM_LINE"
 } >> "$TMP_PAM"
 
-# 3. Vérifier le contenu avant de remplacer
+# 3. Vérifier et installer
 if [ -s "$TMP_PAM" ]; then
-    # Remplacer le fichier original
+    # Vérifier le contenu avant installation
+    if ! grep -q "common-session" "$TMP_PAM" || ! grep -q "$PAM_LINE" "$TMP_PAM"; then
+        log_message "ERROR" "Contenu PAM invalide"
+        rm -f "$TMP_PAM"
+        exit 1
+    fi
+    
+    # Installer la nouvelle configuration
     mv "$TMP_PAM" "$PAM_FILE"
     log_message "SUCCESS" "Configuration PAM mise à jour"
 else
