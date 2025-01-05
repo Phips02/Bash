@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="4.10"
+TELEGRAM_VERSION="4.11"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -188,6 +188,15 @@ awk '
 printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$TMP_PAM"
 mv "$TMP_PAM" "$PAM_FILE"
 
+# Vérification de la mise à jour PAM
+if ! grep -q "telegram.sh" "$PAM_FILE"; then
+    print_log "ERROR" "update.sh" "Échec de la mise à jour PAM"
+    print_log "ERROR" "update.sh" "Application manuelle : ajouter au fichier $PAM_FILE :"
+    print_log "INFO" "update.sh" "# Notification Telegram pour su"
+    print_log "INFO" "update.sh" "$PAM_LINE"
+    exit 1
+fi
+
 
 # 2. Configuration bash.bashrc
 print_log "INFO" "update.sh" "Configuration bash.bashrc..."
@@ -224,6 +233,20 @@ fi' >> "$TMP_BASHRC"
 mv "$TMP_BASHRC" /etc/bash.bashrc
 chmod 644 /etc/bash.bashrc
 chown root:root /etc/bash.bashrc
+
+# Vérification de la mise à jour bash.bashrc
+if ! grep -q "telegram.sh" /etc/bash.bashrc; then
+    print_log "ERROR" "update.sh" "Échec de la mise à jour bash.bashrc"
+    print_log "ERROR" "update.sh" "Application manuelle : ajouter au fichier /etc/bash.bashrc :"
+    print_log "INFO" "update.sh" '# Notification Telegram pour connexions SSH et su
++if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
++    if [ -r '"$CONFIG_DIR"'/telegram.config ]; then
++        source '"$CONFIG_DIR"'/telegram.config 2>/dev/null
++        $SCRIPT_PATH &>/dev/null || true
++    fi
++fi'
+    exit 1
+fi
 
 print_log "SUCCESS" "update.sh" "Configurations système mises à jour"
 
