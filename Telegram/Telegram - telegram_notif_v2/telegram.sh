@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.53"
+TELEGRAM_VERSION="3.12"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -17,25 +17,24 @@ if [ "$1" = "--version" ]; then
     exit 0
 fi
 
-# Fonction pour le logging avec horodatage, niveau et nom du script
-function print_log() {
+# Fonction pour le logging avec horodatage et niveau
+function log_message() {
     local level="$1"
-    local script="$2"
-    local message="$3"
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] [$script] $message"
+    local message="$2"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message"
 }
 
 # Amélioration de la fonction source pour tracer les erreurs
 function safe_source() {
     local config_file="$1"
     if [ ! -f "$config_file" ]; then
-        print_log "ERROR" "telegram.sh" "Fichier de configuration introuvable: $config_file"
+        log_message "ERROR" "Fichier de configuration introuvable: $config_file"
         return 1
     fi
     
     if ! source "$config_file" 2>/tmp/source_error.log; then
         local error=$(cat /tmp/source_error.log)
-        print_log "ERROR" "telegram.sh" "Échec du chargement de $config_file: $error"
+        log_message "ERROR" "Échec du chargement de $config_file: $error"
         rm -f /tmp/source_error.log
         return 1
     fi
@@ -47,14 +46,14 @@ function safe_source() {
 check_config() {
     local config="/etc/telegram/notif_connexion/telegram.config"
     
-    print_log "INFO" "telegram.sh" "Vérification de la configuration..."
+    log_message "INFO" "Vérification de la configuration..."
     if [ ! -f "$config" ]; then
-        print_log "ERROR" "telegram.sh" "Le fichier de configuration n'existe pas : $config"
+        log_message "ERROR" "Le fichier de configuration n'existe pas : $config"
         return 1
     fi
 
     if [ ! -r "$config" ]; then
-        print_log "ERROR" "telegram.sh" "Le fichier de configuration n'est pas lisible : $config"
+        log_message "ERROR" "Le fichier de configuration n'est pas lisible : $config"
         return 1
     fi
 
@@ -65,7 +64,7 @@ check_config() {
     local required_vars=("TELEGRAM_BOT_TOKEN" "TELEGRAM_CHAT_ID" "BASE_DIR" "CONFIG_DIR" "SCRIPT_PATH" "CONFIG_PATH")
     for var in "${required_vars[@]}"; do
         if [ -z "${!var}" ]; then
-            print_log "ERROR" "telegram.sh" "Variable $var non définie dans $config"
+            log_message "ERROR" "Variable $var non définie dans $config"
             return 1
         fi
     done
@@ -73,35 +72,24 @@ check_config() {
     return 0
 }
 
-# Vérification des droits root pour l'accès à la config
-if [ "$EUID" -ne 0 ] && [ "$1" != "background" ]; then
-    print_log "ERROR" "telegram.sh" "Ce script doit être exécuté en tant que root"
+# Vérification de la configuration avant de continuer
+if ! check_config; then
+    log_message "ERROR" "Échec de la vérification de la configuration"
     exit 1
 fi
 
-# Vérification de la configuration avant de continuer
+# Exécution en arrière-plan si ce n'est pas déjà le cas
 if [ "$1" != "background" ]; then
-    if ! check_config; then
-        print_log "ERROR" "telegram.sh" "Échec de la vérification de la configuration"
-        exit 1
-    fi
-fi
-
-# Exécution en arrière-plan
-if [ "$1" != "background" ]; then
-    print_log "INFO" "telegram.sh" "Démarrage en arrière-plan..."
-    exec $0 background > /dev/null 2>&1 &
+    log_message "INFO" "Démarrage en arrière-plan..."
+    $0 background & disown
     exit 0
 fi
 
-# Le reste du script continue ici en arrière-plan
-
 # Vérification des dépendances
-print_log "INFO" "telegram.sh" "Vérification des dépendances..."
-
+log_message "INFO" "Vérification des dépendances..."
 for dep in jq curl; do
     if ! command -v "$dep" &> /dev/null; then
-        print_log "ERROR" "telegram.sh" "Dépendance manquante : $dep"
+        log_message "ERROR" "Dépendance manquante : $dep"
         exit 1
     fi
 done
@@ -112,10 +100,10 @@ API="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}"
 # Fonction d'envoi de message Telegram
 function telegram_text_send() {
     local TEXT="$1"
-    print_log "INFO" "telegram.sh" "Envoi du message Telegram..."
+    log_message "INFO" "Envoi du message Telegram..."
     
     if [[ -z "$TELEGRAM_CHAT_ID" || -z "$TEXT" ]]; then
-        print_log "ERROR" "telegram.sh" "Chat ID ou texte manquant"
+        log_message "ERROR" "Chat ID ou texte manquant"
         return 1
     fi
 
@@ -125,17 +113,18 @@ function telegram_text_send() {
 
     if [ $curl_status -ne 0 ]; then
         local error=$(cat /tmp/curl_error.log)
-        print_log "ERROR" "telegram.sh" "Échec de l'envoi du message: $error"
+        log_message "ERROR" "Échec de l'envoi du message: $error"
         rm -f /tmp/curl_error.log
         return 1
     fi
 
     if ! echo "$response" | jq -e '.ok' >/dev/null 2>&1; then
-        print_log "ERROR" "telegram.sh" "Réponse API invalide: $response"
+        log_message "ERROR" "Réponse API invalide: $response"
         return 1
     fi
 
     rm -f /tmp/curl_error.log
+    log_message "SUCCESS" "Message envoyé avec succès"
     return 0
 }
 
@@ -227,13 +216,10 @@ IP Source : $IP_LOCAL %0A\
 IP Publique : $IP_PUBLIC %0A\
 Pays : $COUNTRY"
 
-# Envoi du message
 if ! telegram_text_send "$TEXT"; then
-    print_log "ERROR" "telegram.sh" "Échec de l'envoi de la notification"
+    log_message "ERROR" "Échec de l'envoi de la notification"
     exit 1
 fi
-print_log "SUCCESS" "telegram.sh" "Notification envoyée avec succès"
-echo "" # Ajout d'une ligne vide pour un retour propre
 
-
+log_message "SUCCESS" "Notification envoyée avec succès"
 exit 0

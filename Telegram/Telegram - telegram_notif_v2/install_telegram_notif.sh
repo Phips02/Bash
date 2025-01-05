@@ -5,46 +5,43 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.54"
+TELEGRAM_VERSION="3.29"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
 CONFIG_DIR="/etc/telegram/notif_connexion"
 
-# Fonction pour le logging avec horodatage, niveau et nom du script
-function print_log() {
+# Fonction pour le logging avec horodatage et niveau
+function log_message() {
     local level="$1"
-    local script="$2"
-    local message="$3"
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] [$script] $message"
+    local message="$2"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message"
 }
-
-print_log "INFO" "install.sh" "Exécution du script d'installation version $TELEGRAM_VERSION"
 
 # Vérification des droits root
 if [[ $EUID -ne 0 ]]; then
-    print_log "ERROR" "install.sh" "Ce script doit être exécuté en tant que root"
+    log_message "ERROR" "Ce script doit être exécuté en tant que root"
     exit 1
 fi
 
 # Vérification et installation des dépendances
 for pkg in curl jq bash adduser; do
-    print_log "INFO" "install.sh" "Vérification de $pkg..."
+    log_message "INFO" "Vérification de $pkg..."
     if ! command -v "$pkg" &> /dev/null; then
-        print_log "WARNING" "install.sh" "$pkg n'est pas installé. Installation en cours..."
+        log_message "WARNING" "$pkg n'est pas installé. Installation en cours..."
         apt-get update && apt-get install -y "$pkg"
         if [ $? -ne 0 ]; then
-            print_log "ERROR" "install.sh" "Échec de l'installation de $pkg"
+            log_message "ERROR" "Échec de l'installation de $pkg"
             exit 1
         fi
-        print_log "SUCCESS" "install.sh" "$pkg installé avec succès"
+        log_message "SUCCESS" "$pkg installé avec succès"
     fi
 done
 
 # Création des répertoires nécessaires
 mkdir -p "$BASE_DIR" "$CONFIG_DIR"
 if [ $? -ne 0 ]; then
-    print_log "ERROR" "install.sh" "Échec de la création des répertoires"
+    log_message "ERROR" "Échec de la création des répertoires"
     exit 1
 fi
 
@@ -52,19 +49,19 @@ fi
 if ! getent group telegramnotif > /dev/null; then
     groupadd telegramnotif
     if [ $? -ne 0 ]; then
-        print_log "ERROR" "install.sh" "Échec de la création du groupe"
+        log_message "ERROR" "Échec de la création du groupe"
         exit 1
     fi
-    print_log "SUCCESS" "install.sh" "Groupe telegramnotif créé"
+    log_message "SUCCESS" "Groupe telegramnotif créé"
 fi
 
 # Ajout de l'utilisateur au groupe si nécessaire
 if ! groups "$USER" | grep -q "telegramnotif"; then
     usermod -a -G telegramnotif "$USER"
     if [ $? -ne 0 ]; then
-        print_log "WARNING" "install.sh" "Impossible d'ajouter l'utilisateur au groupe telegramnotif"
+        log_message "WARNING" "Impossible d'ajouter l'utilisateur au groupe telegramnotif"
     else
-        print_log "SUCCESS" "install.sh" "Utilisateur ajouté au groupe telegramnotif"
+        log_message "SUCCESS" "Utilisateur ajouté au groupe telegramnotif"
     fi
 fi
 
@@ -75,7 +72,7 @@ if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
         if [[ $TELEGRAM_BOT_TOKEN =~ ^[0-9]+:[a-zA-Z0-9_-]+$ ]]; then
             break
         else
-            print_log "ERROR" "install.sh" "Format de TOKEN invalide. Format attendu: 123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+            log_message "ERROR" "Format de TOKEN invalide. Format attendu: 123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
         fi
     done
 fi
@@ -87,14 +84,14 @@ if [ -z "$TELEGRAM_CHAT_ID" ]; then
         if [[ $TELEGRAM_CHAT_ID =~ ^-?[0-9]+$ ]]; then
             break
         else
-            print_log "ERROR" "install.sh" "Format de Chat ID invalide. Doit être un nombre"
+            log_message "ERROR" "Format de Chat ID invalide. Doit être un nombre"
         fi
     done
 fi
 
 # Gestion du hostname
 current_hostname=$(hostname)
-print_log "INFO" "install.sh" "Hostname actuel du serveur : $current_hostname"
+log_message "INFO" "Hostname actuel du serveur : $current_hostname"
 
 while true; do
     read -p "Voulez-vous modifier le hostname ? (o/n) : " change_hostname
@@ -106,37 +103,37 @@ while true; do
                     # Sauvegarde du hostname actuel
                     cp /etc/hostname /etc/hostname.bak
                     if [ $? -ne 0 ]; then
-                        print_log "ERROR" "install.sh" "Échec de la sauvegarde du hostname"
+                        log_message "ERROR" "Échec de la sauvegarde du hostname"
                         continue
                     fi
                     
                     # Modification du hostname
                     echo "$new_hostname" > /etc/hostname
                     if [ $? -ne 0 ]; then
-                        print_log "ERROR" "install.sh" "Échec de la modification du hostname"
+                        log_message "ERROR" "Échec de la modification du hostname"
                         continue
                     fi
                     
                     # Mise à jour des hosts
                     sed -i "s/$current_hostname/$new_hostname/g" /etc/hosts
                     if [ $? -ne 0 ]; then
-                        print_log "ERROR" "install.sh" "Échec de la mise à jour des hosts"
+                        log_message "ERROR" "Échec de la mise à jour des hosts"
                         continue
                     fi
                     
                     # Application du nouveau hostname
                     hostnamectl set-hostname "$new_hostname"
                     if [ $? -ne 0 ]; then
-                        print_log "ERROR" "install.sh" "Échec de l'application du nouveau hostname"
+                        log_message "ERROR" "Échec de l'application du nouveau hostname"
                         continue
                     fi
                     
                     HOSTNAME=$new_hostname
                     export HOSTNAME
-                    print_log "SUCCESS" "install.sh" "Hostname modifié avec succès : $new_hostname"
+                    log_message "SUCCESS" "Hostname modifié avec succès : $new_hostname"
                     break
                 else
-                    print_log "ERROR" "install.sh" "Format de hostname invalide. Utilisez uniquement des lettres, chiffres et tirets"
+                    log_message "ERROR" "Format de hostname invalide. Utilisez uniquement des lettres, chiffres et tirets"
                 fi
             done
             break
@@ -146,7 +143,7 @@ while true; do
             break
             ;;
         *)
-            print_log "ERROR" "install.sh" "Répondez par 'o' pour oui ou 'n' pour non"
+            log_message "ERROR" "Répondez par 'o' pour oui ou 'n' pour non"
             ;;
     esac
 done
@@ -154,30 +151,25 @@ done
 # Téléchargement et installation des fichiers
 REPO_URL="https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2"
 
-print_log "INFO" "install.sh" "Téléchargement de telegram.sh..."
+log_message "INFO" "Téléchargement de telegram.sh..."
 wget -q "${REPO_URL}/telegram.sh" -O "${BASE_DIR}/telegram.sh"
 if [ $? -ne 0 ]; then
-    print_log "ERROR" "install.sh" "Échec du téléchargement du script"
+    log_message "ERROR" "Échec du téléchargement du script"
     exit 1
 fi
 
 chmod +x "${BASE_DIR}/telegram.sh"
 if [ $? -ne 0 ]; then
-    print_log "ERROR" "install.sh" "Échec de l'attribution des droits d'exécution"
+    log_message "ERROR" "Échec de l'attribution des droits d'exécution"
     exit 1
 fi
 
-# Retirer l'attribut immutable s'il existe
-if [ -f "$CONFIG_DIR/telegram.config" ]; then
-    chattr -i "$CONFIG_DIR/telegram.config" 2>/dev/null
-fi
-
 # Création du fichier de configuration
-print_log "INFO" "install.sh" "Création du fichier de configuration..."
+log_message "INFO" "Création du fichier de configuration..."
 cat > "$CONFIG_DIR/telegram.config" << EOF
 ###############################################################################
 # Configuration Telegram pour les notifications de connexion
-# Version 3.53
+# Version 3.5
 ###############################################################################
 
 # Configuration du bot
@@ -202,70 +194,84 @@ export LOG_LEVEL CURL_TIMEOUT DATE_FORMAT
 EOF
 
 if [ $? -ne 0 ]; then
-    print_log "ERROR" "install.sh" "Échec de la création du fichier de configuration"
+    log_message "ERROR" "Échec de la création du fichier de configuration"
     exit 1
 fi
 
-# Réappliquer l'attribut immutable
-chattr +i "$CONFIG_DIR/telegram.config"
-
 # Configuration des permissions
-print_log "INFO" "install.sh" "Configuration des permissions..."
-
-# Permissions des répertoires
-chmod 755 "$BASE_DIR"           # rwxr-xr-x - Accès pour tous
-chmod 755 "$CONFIG_DIR"         # rwxr-xr-x - Accès pour tous
-chmod 644 "$CONFIG_PATH"        # rw-r--r-- - Lecture pour tous
-chmod 755 "$SCRIPT_PATH"        # rwxr-xr-x - Exécution pour tous
-
-# Propriétaire et groupe
-chown -R root:root "$BASE_DIR" "$CONFIG_DIR"
-
-# Configuration PAM
-PAM_LINE='PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && $SCRIPT_PATH""'
-
-# Configuration pour SSH
-SSH_PAM_FILE="/etc/pam.d/sshd"
-printf "# Notification Telegram pour SSH\n%s\n" "$PAM_LINE" >> "$SSH_PAM_FILE"
-
-# Configuration pour su
-SU_PAM_FILE="/etc/pam.d/su"
-printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$SU_PAM_FILE"
-
-# Suppression de la configuration bash.bashrc qui n'est plus nécessaire
-sed -i '/Notification Telegram/,/^fi$/d' /etc/bash.bashrc
-
-# Test de l'installation
-print_log "INFO" "install.sh" "Test de l'installation..."
-"$BASE_DIR/telegram.sh" &
-test_pid=$!
-
-# Attendre la fin du test
-wait $test_pid
-
-# Auto-destruction du script
-print_log "INFO" "install.sh" "Auto-destruction du script..."
-rm -f "$0"
+log_message "INFO" "Configuration des permissions..."
+chmod 640 "$CONFIG_DIR/telegram.config"
 if [ $? -ne 0 ]; then
-    print_log "WARNING" "install.sh" "Impossible de supprimer le script d'installation"
+    log_message "ERROR" "Échec de la modification des permissions du fichier de configuration"
+    exit 1
 fi
 
-# Sécurisation des fichiers sensibles
-chattr +i "$CONFIG_DIR/telegram.config"  # Empêcher la modification
+chmod 750 "$BASE_DIR/telegram.sh"
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec de la modification des permissions du script"
+    exit 1
+fi
 
-# Configuration logrotate
-cat > /etc/logrotate.d/telegram_notif << EOF
-/var/log/telegram_notif/*.log {
-    weekly
-    rotate 4
-    compress
-    missingok
-    notifempty
-}
-EOF
+chown root:telegramnotif "$CONFIG_DIR/telegram.config"
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec de la modification du propriétaire du fichier de configuration"
+    exit 1
+fi
+
+chown root:telegramnotif "$BASE_DIR/telegram.sh"
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec de la modification du propriétaire du script"
+    exit 1
+fi
+
+# Configuration système
+log_message "INFO" "Configuration du système..."
+
+# Ajout au bash.bashrc
+if ! grep -q "\$SCRIPT_PATH" /etc/bash.bashrc; then
+    echo '
+# Notification Telegram pour connexions SSH et su
+if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
+    source '"$CONFIG_DIR"'/telegram.config
+    $SCRIPT_PATH &>/dev/null
+fi' >> /etc/bash.bashrc
+    chmod 644 /etc/bash.bashrc
+    chown root:root /etc/bash.bashrc
+    if [ $? -ne 0 ]; then
+        log_message "ERROR" "Échec de la configuration de bash.bashrc"
+        exit 1
+    fi
+fi
+
+# Configuration PAM
+if ! grep -q "session.*telegram.sh" /etc/pam.d/su; then
+    echo "# Notification Telegram pour su
+session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\"" >> /etc/pam.d/su
+    if [ $? -ne 0 ]; then
+        log_message "ERROR" "Échec de la configuration PAM"
+        exit 1
+    fi
+fi
+
+# Test de l'installation
+log_message "INFO" "Test de l'installation..."
+"$BASE_DIR/telegram.sh" silent &
+test_pid=$!
+
+log_message "INFO" "Exécution du script d'installation version $TELEGRAM_VERSION"
+log_message "SUCCESS" "Installation réussie!"
+
+# Auto-destruction du script
+log_message "INFO" "Auto-destruction du script..."
+rm -f "$0"
+if [ $? -ne 0 ]; then
+    log_message "WARNING" "Impossible de supprimer le script d'installation"
+fi
+
+# Attendre la fin du test silencieusement
+wait $test_pid &>/dev/null
 
 # Message final
-print_log "SUCCESS" "install.sh" "Installation terminée avec succès!"
-echo "" # Ajout d'une ligne vide pour un retour propre
-
-exit 0
+echo ""
+log_message "INFO" "Déconnectez-vous et reconnectez-vous pour activer les notifications"
+echo ""

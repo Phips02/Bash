@@ -1,5 +1,5 @@
 # Système de notification Telegram pour connexions SSH et su
-Version 3.53
+Version 3.13
 
 ## À propos
 Ce système permet de recevoir des notifications Telegram lors des connexions SSH et des utilisations de la commande su.
@@ -84,9 +84,3 @@ rm -rf /usr/local/bin/telegram/notif_connexion
 # Supprimer le groupe
 groupdel telegramnotif
 ``` 
-
-## Fichiers du système
-- `telegram.sh` : Script principal
-- `telegram.config` : Configuration du système
-- `install_telegram_notif.sh` : Script d'installation
-- `update_telegram_notif.sh` : Script de mise à jour 
