@@ -12,7 +12,7 @@ function log_message() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.13"
+TELEGRAM_VERSION="3.14"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -72,26 +72,38 @@ log_message "INFO" "Configuration PAM..."
 # Créer un fichier temporaire
 TMP_PAM=$(mktemp)
 
-# 1. Copier le contenu existant en filtrant les lignes Telegram et gérant les lignes vides
+# 1. Copier le contenu existant en préservant la structure mais en filtrant Telegram
 awk '
-    BEGIN { prev_empty = 0 }
+    BEGIN { prev_empty = 0; comment_block = 0 }
     /^[[:space:]]*#.*[Tt]elegram/ { next }      # Ignorer les commentaires Telegram
     /telegram/ { next }                          # Ignorer les lignes contenant telegram
-    /^[[:space:]]*$/ {                          # Gestion des lignes vides
-        if (!prev_empty) {
-            printf "\n"                          # Utiliser printf au lieu de print
-            prev_empty = 1
+    /^[[:space:]]*#/ {                          # Gestion des commentaires
+        if (comment_block) {
+            printf "%s\n", $0
+        } else {
+            if (!prev_empty) printf "#\n"        # Ligne vide avec #
+            printf "%s\n", $0
+            comment_block = 1
         }
         next
     }
-    {                                           # Lignes non vides
-        printf "%s\n", $0                       # Utiliser printf avec \n explicite
-        prev_empty = 0
+    /^[[:space:]]*$/ {                          # Gestion des lignes vides
+        if (!prev_empty) {
+            printf "#\n"                         # Remplacer ligne vide par #
+            prev_empty = 1
+        }
+        comment_block = 0
+        next
     }
-' "$PAM_FILE" | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' > "$TMP_PAM"  # Supprimer les lignes vides à la fin
+    {                                           # Lignes non vides
+        printf "%s\n", $0
+        prev_empty = 0
+        comment_block = 0
+    }
+' "$PAM_FILE" | sed -e :a -e '/^#$/N;/\n#$/D' > "$TMP_PAM"  # Nettoyer les # consécutifs
 
-# 2. Ajouter la nouvelle configuration sans ligne vide supplémentaire
-printf "\n# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$TMP_PAM"
+# 2. Ajouter la nouvelle configuration
+printf "#\n# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$TMP_PAM"
 
 # 3. Installer la nouvelle configuration
 mv "$TMP_PAM" "$PAM_FILE"
