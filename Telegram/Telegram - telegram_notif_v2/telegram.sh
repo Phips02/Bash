@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.33"
+TELEGRAM_VERSION="3.34"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -84,9 +84,11 @@ fi
 # Exécution en arrière-plan
 if [ "$1" != "background" ]; then
     print_log "INFO" "telegram.sh" "Démarrage en arrière-plan..."
-    $0 background & disown
+    exec $0 background > /dev/null 2>&1 &
     exit 0
 fi
+
+# Le reste du script continue ici en arrière-plan
 
 # Vérification des dépendances
 print_log "INFO" "telegram.sh" "Vérification des dépendances..."
@@ -225,5 +227,4 @@ if ! telegram_text_send "$TEXT"; then
     exit 1
 fi
 print_log "SUCCESS" "telegram.sh" "Notification envoyée avec succès"
-
 exit 0
