@@ -183,8 +183,16 @@ get_connection_type() {
         type="SSH"
     elif [ -n "$PAM_TYPE" ]; then
         type="su/sudo"
+    elif tty | grep -q "^/dev/tty[0-9]"; then
+        type="Console locale"
+    elif tty | grep -q "^/dev/pts"; then
+        if [ -n "$(ps -o comm= -p $(ps -o ppid= -p $$))" ]; then
+            type="Console"
+        else
+            type="Terminal"
+        fi
     else
-        type="Local"
+        type="Indéterminé"
     fi
     echo "$type"
 }
