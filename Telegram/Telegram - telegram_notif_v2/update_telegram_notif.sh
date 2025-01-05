@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.33"
+TELEGRAM_VERSION="3.34"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -116,10 +116,6 @@ print_log "SUCCESS" "update.sh" "Configuration PAM mise à jour"
 print_log "INFO" "update.sh" "Nettoyage des anciennes sauvegardes..."
 cd "$BACKUP_DIR" && ls -t telegram.* | tail -n +11 | xargs -r rm
 
-# Message final
-print_log "SUCCESS" "update.sh" "Mise à jour terminée avec succès!"
-print_log "INFO" "update.sh" "Redémarrez votre session pour activer les changements"
-
 # Configuration des permissions
 print_log "INFO" "update.sh" "Configuration des permissions..."
 
@@ -143,7 +139,7 @@ if [ $? -ne 0 ]; then
 fi
 print_log "SUCCESS" "update.sh" "Permissions configurées"
 
-# Nettoyage et ajout au bash.bashrc
+# Mise à jour de bash.bashrc
 print_log "INFO" "update.sh" "Mise à jour de bash.bashrc..."
 
 # Créer un fichier temporaire
@@ -187,6 +183,7 @@ if [ $? -ne 0 ]; then
     print_log "WARNING" "update.sh" "Impossible de supprimer le script de mise à jour"
 fi
 
-print_log "SUCCESS" "update.sh" "Mise à jour terminée avec succès!"
+# Message final unique
+print_log "SUCCESS" "update.sh" "Mise à jour version $TELEGRAM_VERSION terminée avec succès"
 
 exit 0

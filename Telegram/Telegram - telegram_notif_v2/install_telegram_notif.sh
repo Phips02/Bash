@@ -294,6 +294,4 @@ if [ $? -ne 0 ]; then
 fi
 
 # Message final
-echo ""
 print_log "SUCCESS" "install.sh" "Installation terminée avec succès!"
-echo ""

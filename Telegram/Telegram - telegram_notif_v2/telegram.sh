@@ -128,7 +128,6 @@ function telegram_text_send() {
     fi
 
     rm -f /tmp/curl_error.log
-    print_log "SUCCESS" "telegram.sh" "Message envoyé avec succès"
     return 0
 }
 
