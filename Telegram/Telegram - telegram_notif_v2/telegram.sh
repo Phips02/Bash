@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.11"
+TELEGRAM_VERSION="3.12"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -130,8 +130,6 @@ function telegram_text_send() {
 
 # Fonction pour détecter l'IP source avec gestion d'erreurs améliorée
 get_source_ip() {
-    log_message "INFO" "Détection de l'IP source..."
-    
     if [ -n "$SSH_CONNECTION" ]; then
         echo "$SSH_CONNECTION" | awk '{print $1}'
         return
@@ -141,14 +139,12 @@ get_source_ip() {
         local ppid=$PPID
         while [ "$ppid" -ne 1 ]; do
             if ! ps -p "$ppid" >/dev/null 2>&1; then
-                log_message "ERROR" "Processus parent $ppid non trouvé"
                 break
             fi
 
             local parent_cmd
             parent_cmd=$(ps -o cmd= -p "$ppid" 2>/dev/null)
             if [ $? -ne 0 ]; then
-                log_message "ERROR" "Impossible de lire la commande du processus $ppid"
                 break
             fi
 
@@ -162,19 +158,16 @@ get_source_ip() {
             fi
 
             if ! ppid=$(ps -o ppid= -p "$ppid" 2>/dev/null); then
-                log_message "ERROR" "Impossible de lire le PPID pour $ppid"
                 break
             fi
             ppid=$(echo "$ppid" | tr -d ' ')
             
             if ! [[ "$ppid" =~ ^[0-9]+$ ]]; then
-                log_message "ERROR" "PPID invalide: $ppid"
                 break
             fi
         done
     fi
 
-    log_message "WARNING" "IP source non détectée"
     echo "Indisponible"
 }
 
