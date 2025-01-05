@@ -308,4 +308,24 @@ cat > /etc/logrotate.d/telegram_notif << EOF
 }
 EOF
 
+# Installation du wrapper script
+print_log "INFO" "install.sh" "Installation du wrapper script..."
+cat > "$BASE_DIR/telegram_wrapper.sh" << 'EOF'
+#!/bin/bash
+source /etc/telegram/notif_connexion/telegram.config 2>/dev/null
+/usr/local/bin/telegram/notif_connexion/telegram.sh "$@"
+EOF
+
+chmod 4755 "$BASE_DIR/telegram_wrapper.sh"
+chown root:root "$BASE_DIR/telegram_wrapper.sh"
+
+# Modification de bash.bashrc pour utiliser le wrapper
+echo '
+# Notification Telegram pour connexions SSH et su
+if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
+    if [ -r '"$CONFIG_DIR"'/telegram.config ]; then
+        '"$BASE_DIR"'/telegram_wrapper.sh &>/dev/null || true
+    fi
+fi' >> /etc/bash.bashrc
+
 exit 0
