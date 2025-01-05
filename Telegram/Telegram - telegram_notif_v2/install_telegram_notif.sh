@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.32"
+TELEGRAM_VERSION="3.33"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -18,6 +18,8 @@ function print_log() {
     local message="$3"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] [$script] $message"
 }
+
+print_log "INFO" "install.sh" "Exécution du script d'installation version $TELEGRAM_VERSION"
 
 # Vérification des droits root
 if [[ $EUID -ne 0 ]]; then
@@ -279,7 +281,6 @@ print_log "INFO" "install.sh" "Test de l'installation..."
 "$BASE_DIR/telegram.sh" &
 test_pid=$!
 
-print_log "INFO" "install.sh" "Exécution du script d'installation version $TELEGRAM_VERSION"
 print_log "SUCCESS" "install.sh" "Installation réussie!"
 
 # Attendre la fin du test

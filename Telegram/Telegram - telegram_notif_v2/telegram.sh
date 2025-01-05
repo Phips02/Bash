@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.30"
+TELEGRAM_VERSION="3.33"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -74,9 +74,11 @@ check_config() {
 }
 
 # Vérification de la configuration avant de continuer
-if ! check_config; then
-    print_log "ERROR" "telegram.sh" "Échec de la vérification de la configuration"
-    exit 1
+if [ "$1" != "background" ]; then
+    if ! check_config; then
+        print_log "ERROR" "telegram.sh" "Échec de la vérification de la configuration"
+        exit 1
+    fi
 fi
 
 # Exécution en arrière-plan

@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.29"
+TELEGRAM_VERSION="3.33"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -186,5 +186,7 @@ rm -f "$0" /tmp/update_telegram_notif.sh*
 if [ $? -ne 0 ]; then
     print_log "WARNING" "update.sh" "Impossible de supprimer le script de mise à jour"
 fi
+
+print_log "SUCCESS" "update.sh" "Mise à jour terminée avec succès!"
 
 exit 0
