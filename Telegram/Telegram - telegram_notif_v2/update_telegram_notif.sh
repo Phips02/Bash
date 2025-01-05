@@ -58,32 +58,29 @@ PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR
 PAM_FILE="/etc/pam.d/su"
 
 log_message "INFO" "Vérification de la configuration PAM..."
-if grep -q "session.*telegram.sh" "$PAM_FILE"; then
-    # Si une ancienne configuration existe, la mettre à jour
-    if ! grep -Fxq "$PAM_LINE" "$PAM_FILE"; then
-        log_message "INFO" "Mise à jour de la configuration PAM..."
-        sed -i '/session.*telegram.sh/d' "$PAM_FILE"
-        echo "# Notification Telegram pour su" >> "$PAM_FILE"
-        echo "$PAM_LINE" >> "$PAM_FILE"
-        if [ $? -ne 0 ]; then
-            log_message "ERROR" "Échec de la mise à jour de la configuration PAM"
-            exit 1
-        fi
-        log_message "SUCCESS" "Configuration PAM mise à jour"
-    else
-        log_message "INFO" "Configuration PAM déjà à jour"
-    fi
-else
-    # Si aucune configuration n'existe, l'ajouter
-    log_message "INFO" "Installation de la configuration PAM..."
-    echo "# Notification Telegram pour su" >> "$PAM_FILE"
-    echo "$PAM_LINE" >> "$PAM_FILE"
+
+# Supprimer toutes les anciennes configurations Telegram
+if grep -q "telegram" "$PAM_FILE"; then
+    log_message "INFO" "Suppression des anciennes configurations PAM..."
+    sed -i '/telegram/d' "$PAM_FILE"
     if [ $? -ne 0 ]; then
-        log_message "ERROR" "Échec de l'installation de la configuration PAM"
+        log_message "ERROR" "Échec de la suppression des anciennes configurations PAM"
         exit 1
     fi
-    log_message "SUCCESS" "Configuration PAM installée"
 fi
+
+# Ajouter la nouvelle configuration
+log_message "INFO" "Installation de la nouvelle configuration PAM..."
+{
+    echo "# Notification Telegram pour su"
+    echo "$PAM_LINE"
+} >> "$PAM_FILE"
+
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec de l'installation de la configuration PAM"
+    exit 1
+fi
+log_message "SUCCESS" "Configuration PAM installée"
 
 # Nettoyage
 log_message "INFO" "Nettoyage des anciennes sauvegardes..."
