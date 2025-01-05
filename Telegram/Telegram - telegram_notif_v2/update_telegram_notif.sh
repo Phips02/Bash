@@ -65,7 +65,7 @@ fi
 
 # Configuration PAM
 PAM_FILE="/etc/pam.d/su"
-PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\""
+PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c \"if [ -r $CONFIG_DIR/telegram.config ]; then source $CONFIG_DIR/telegram.config &>/dev/null && \$SCRIPT_PATH &>/dev/null || exit 0; fi\""
 
 log_message "INFO" "Configuration PAM..."
 
