@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.30"
+TELEGRAM_VERSION="3.31"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -201,29 +201,45 @@ fi
 
 # Configuration des permissions
 print_log "INFO" "install.sh" "Configuration des permissions..."
-chmod 640 "$CONFIG_DIR/telegram.config"
-if [ $? -ne 0 ]; then
-    print_log "ERROR" "install.sh" "Échec de la modification des permissions du fichier de configuration"
-    exit 1
-fi
 
-chmod 750 "$BASE_DIR/telegram.sh"
-if [ $? -ne 0 ]; then
-    print_log "ERROR" "install.sh" "Échec de la modification des permissions du script"
-    exit 1
-fi
+# Permissions des répertoires
+chmod 755 "$BASE_DIR"           # rwxr-xr-x - Permet l'accès au dossier
+chmod 750 "$CONFIG_DIR"         # rwxr-x--- - Restreint l'accès à la config au groupe
 
+# Permissions des fichiers
+chmod 640 "$CONFIG_DIR/telegram.config"  # rw-r----- - Lecture groupe uniquement
+chmod 755 "$BASE_DIR/telegram.sh"        # rwxr-xr-x - Exécutable par tous
+
+# Propriétaire et groupe
+chown root:telegramnotif "$CONFIG_DIR"
 chown root:telegramnotif "$CONFIG_DIR/telegram.config"
-if [ $? -ne 0 ]; then
-    print_log "ERROR" "install.sh" "Échec de la modification du propriétaire du fichier de configuration"
-    exit 1
+chown root:telegramnotif "$BASE_DIR/telegram.sh"
+
+# Configuration pour les nouveaux utilisateurs
+print_log "INFO" "install.sh" "Configuration pour les nouveaux utilisateurs..."
+
+# 1. Configuration de adduser.conf
+if [ -f "/etc/adduser.conf" ]; then
+    # Backup du fichier original
+    cp /etc/adduser.conf /etc/adduser.conf.bak
+    
+    # Ajouter telegramnotif aux groupes par défaut
+    if ! grep -q "^EXTRA_GROUPS=" /etc/adduser.conf; then
+        echo 'EXTRA_GROUPS="telegramnotif"' >> /etc/adduser.conf
+        echo 'ADD_EXTRA_GROUPS=1' >> /etc/adduser.conf
+    else
+        sed -i '/^EXTRA_GROUPS=/ s/"$/ telegramnotif"/' /etc/adduser.conf
+        sed -i 's/^ADD_EXTRA_GROUPS=.*/ADD_EXTRA_GROUPS=1/' /etc/adduser.conf
+    fi
 fi
 
-chown root:telegramnotif "$BASE_DIR/telegram.sh"
-if [ $? -ne 0 ]; then
-    print_log "ERROR" "install.sh" "Échec de la modification du propriétaire du script"
-    exit 1
-fi
+# 2. Ajouter tous les utilisateurs existants au groupe
+for user in $(awk -F: '$3 >= 1000 && $3 != 65534 {print $1}' /etc/passwd); do
+    if ! groups "$user" | grep -q "telegramnotif"; then
+        usermod -a -G telegramnotif "$user"
+        print_log "INFO" "install.sh" "Utilisateur $user ajouté au groupe telegramnotif"
+    fi
+done
 
 # Configuration système
 print_log "INFO" "install.sh" "Configuration du système..."
