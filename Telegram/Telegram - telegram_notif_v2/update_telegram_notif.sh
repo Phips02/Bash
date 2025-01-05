@@ -12,7 +12,7 @@ function log_message() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.23"
+TELEGRAM_VERSION="3.24"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -134,6 +134,9 @@ log_message "INFO" "Mise à jour de bash.bashrc..."
 # Créer un fichier temporaire
 TMP_BASHRC=$(mktemp)
 
+# Sauvegarder les permissions actuelles
+BASHRC_PERMS=$(stat -c %a /etc/bash.bashrc)
+
 # Nettoyer les anciennes configurations
 awk '
     /^# Notification Telegram/ { skip = 1; next }
@@ -155,6 +158,11 @@ fi' >> "$TMP_BASHRC"
 
 # Installer la nouvelle configuration
 mv "$TMP_BASHRC" /etc/bash.bashrc
+
+# Restaurer les permissions correctes
+chmod 644 /etc/bash.bashrc
+chown root:root /etc/bash.bashrc
+
 log_message "SUCCESS" "Configuration bash.bashrc mise à jour"
 
 # Auto-destruction du script
