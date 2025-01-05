@@ -246,8 +246,9 @@ fi
 
 # Configuration PAM
 if ! grep -q "session.*telegram.sh" /etc/pam.d/su; then
+    PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\""
     echo "# Notification Telegram pour su
-session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\"" >> /etc/pam.d/su
+$PAM_LINE" >> /etc/pam.d/su
     if [ $? -ne 0 ]; then
         print_log "error" "install" "Échec de la configuration PAM"
         exit 1
