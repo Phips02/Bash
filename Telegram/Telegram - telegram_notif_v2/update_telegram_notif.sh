@@ -29,7 +29,7 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-# Vérification de la version actuelle
+# Information sur la version actuelle
 if [ -f "$CONFIG_PATH" ]; then
     CURRENT_VERSION=$(grep "TELEGRAM_VERSION=" "$CONFIG_PATH" | cut -d'"' -f2)
     log_message "INFO" "Version actuelle : $CURRENT_VERSION"
