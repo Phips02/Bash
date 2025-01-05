@@ -2,8 +2,14 @@
 
 ###############################################################################
 # Script d'installation automatique des notifications Telegram
-# Version 3.4
 ###############################################################################
+
+# Version du système
+TELEGRAM_VERSION="3.4"
+
+# Définition des chemins
+BASE_DIR="/usr/local/bin/telegram/notif_connexion"
+CONFIG_DIR="/etc/telegram/notif_connexion"
 
 # Fonction pour le logging avec horodatage et niveau
 function log_message() {
@@ -33,8 +39,6 @@ for pkg in curl jq bash; do
 done
 
 # Création des répertoires nécessaires
-BASE_DIR="/usr/local/bin/telegram/notif_connexion"
-CONFIG_DIR="/etc/telegram/notif_connexion"
 mkdir -p "$BASE_DIR" "$CONFIG_DIR"
 if [ $? -ne 0 ]; then
     log_message "ERROR" "Échec de la création des répertoires"
@@ -253,6 +257,15 @@ log_message "INFO" "Auto-destruction du script..."
 rm -f "$0"
 if [ $? -ne 0 ]; then
     log_message "WARNING" "Impossible de supprimer le script d'installation"
+fi
+
+# Vérification de la version installée
+log_message "INFO" "Vérification de la version installée..."
+INSTALLED_VERSION=$(grep "TELEGRAM_VERSION=" "$CONFIG_PATH" | cut -d'"' -f2)
+if [ "$INSTALLED_VERSION" = "3.4" ]; then
+    log_message "SUCCESS" "Installation de la version $INSTALLED_VERSION réussie"
+else
+    log_message "WARNING" "Version installée ($INSTALLED_VERSION) incorrecte"
 fi
 
 exit 0

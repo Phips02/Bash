@@ -2,8 +2,10 @@
 
 ###############################################################################
 # Script de mise à jour des notifications Telegram
-# Version 3.4
 ###############################################################################
+
+# Version du système
+TELEGRAM_VERSION="3.4"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -11,6 +13,12 @@ CONFIG_DIR="/etc/telegram/notif_connexion"
 BACKUP_DIR="$CONFIG_DIR/backup"
 SCRIPT_PATH="$BASE_DIR/telegram.sh"
 CONFIG_PATH="$CONFIG_DIR/telegram.config"
+
+# Vérification de la version actuelle
+if [ -f "$CONFIG_PATH" ]; then
+    CURRENT_VERSION=$(grep "TELEGRAM_VERSION=" "$CONFIG_PATH" | cut -d'"' -f2)
+    log_message "INFO" "Version actuelle : $CURRENT_VERSION"
+fi
 
 # Fonction pour le logging avec horodatage et niveau
 function log_message() {
@@ -59,29 +67,18 @@ PAM_FILE="/etc/pam.d/su"
 
 log_message "INFO" "Vérification de la configuration PAM..."
 
-# Nettoyer complètement toutes les configurations Telegram
-if grep -q "telegram" "$PAM_FILE"; then
-    log_message "INFO" "Nettoyage des anciennes configurations PAM..."
-    # Créer un fichier temporaire sans les lignes Telegram
-    grep -v "telegram" "$PAM_FILE" > "$PAM_FILE.tmp"
-    if [ $? -ne 0 ]; then
-        log_message "ERROR" "Échec du nettoyage des anciennes configurations PAM"
-        rm -f "$PAM_FILE.tmp"
-        exit 1
-    fi
-    # Remplacer le fichier original
-    mv "$PAM_FILE.tmp" "$PAM_FILE"
-fi
+# Sauvegarder le contenu original sans les lignes Telegram
+awk '!/telegram/' "$PAM_FILE" > "$PAM_FILE.new"
 
-# Ajouter la nouvelle configuration proprement
-log_message "INFO" "Installation de la nouvelle configuration PAM..."
-printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$PAM_FILE"
+# Ajouter une seule fois la nouvelle configuration
+{
+    echo "# Notification Telegram pour su"
+    echo "$PAM_LINE"
+} >> "$PAM_FILE.new"
 
-if [ $? -ne 0 ]; then
-    log_message "ERROR" "Échec de l'installation de la configuration PAM"
-    exit 1
-fi
-log_message "SUCCESS" "Configuration PAM installée"
+# Remplacer l'ancien fichier
+mv "$PAM_FILE.new" "$PAM_FILE"
+log_message "SUCCESS" "Configuration PAM mise à jour"
 
 # Nettoyage
 log_message "INFO" "Nettoyage des anciennes sauvegardes..."
@@ -90,5 +87,36 @@ cd "$BACKUP_DIR" && ls -t telegram.* | tail -n +11 | xargs -r rm
 # Message final
 log_message "SUCCESS" "Mise à jour terminée avec succès!"
 log_message "INFO" "Redémarrez votre session pour activer les changements"
+
+# Vérification de la nouvelle version
+log_message "INFO" "Vérification de la version installée..."
+INSTALLED_VERSION=$(grep "TELEGRAM_VERSION=" "$CONFIG_PATH" | cut -d'"' -f2)
+if [ "$INSTALLED_VERSION" = "$TELEGRAM_VERSION" ]; then
+    log_message "SUCCESS" "Version $INSTALLED_VERSION installée avec succès"
+    if [ -n "$CURRENT_VERSION" ] && [ "$CURRENT_VERSION" != "$INSTALLED_VERSION" ]; then
+        log_message "INFO" "Mise à jour effectuée : $CURRENT_VERSION -> $INSTALLED_VERSION"
+    fi
+else
+    log_message "WARNING" "Version installée ($INSTALLED_VERSION) différente de la version attendue ($TELEGRAM_VERSION)"
+fi
+
+# Après le téléchargement des fichiers, ajoutons la configuration des permissions
+log_message "INFO" "Configuration des permissions..."
+
+# Permissions des répertoires
+chmod 755 "$BASE_DIR" "$CONFIG_DIR" "$BACKUP_DIR"
+
+# Permissions des fichiers
+chmod 640 "$CONFIG_PATH"
+chmod 750 "$SCRIPT_PATH"
+
+# Propriétaire et groupe
+chown -R root:telegramnotif "$BASE_DIR" "$CONFIG_DIR"
+
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Échec de la configuration des permissions"
+    exit 1
+fi
+log_message "SUCCESS" "Permissions configurées"
 
 exit 0

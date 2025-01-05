@@ -2,29 +2,26 @@
 
 ###############################################################################
 # Script de notification Telegram pour les connexions SSH et su
-# Version 3.4
 ###############################################################################
+
+# Version du système
+TELEGRAM_VERSION="3.4"
+
+# Définition des chemins
+BASE_DIR="/usr/local/bin/telegram/notif_connexion"
+CONFIG_DIR="/etc/telegram/notif_connexion"
+
+# Gestion des arguments
+if [ "$1" = "--version" ]; then
+    echo "Version $TELEGRAM_VERSION"
+    exit 0
+fi
 
 # Fonction pour le logging avec horodatage et niveau
 function log_message() {
     local level="$1"
     local message="$2"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message"
-}
-
-# Fonction pour tracer les erreurs des commandes
-function execute_command() {
-    local cmd="$1"
-    local description="$2"
-    
-    if ! eval "$cmd" 2>/tmp/cmd_error.log; then
-        local error=$(cat /tmp/cmd_error.log)
-        log_message "ERROR" "Échec de $description: $error"
-        rm -f /tmp/cmd_error.log
-        return 1
-    fi
-    rm -f /tmp/cmd_error.log
-    return 0
 }
 
 # Amélioration de la fonction source pour tracer les erreurs
