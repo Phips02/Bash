@@ -67,20 +67,29 @@ PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR
 
 log_message "INFO" "Configuration PAM..."
 
-# Créer un fichier temporaire
+# Sauvegarder une copie temporaire du fichier PAM original
 TMP_PAM=$(mktemp)
 
-# Copier toutes les lignes sauf celles contenant telegram
-grep -v "telegram" "$PAM_FILE" > "$TMP_PAM"
+# 1. Garder toutes les lignes qui ne contiennent pas "telegram" ou "Notification Telegram"
+grep -v -E "telegram|Notification Telegram" "$PAM_FILE" > "$TMP_PAM"
 
-# Ajouter la nouvelle configuration
-echo "# Notification Telegram pour su" >> "$TMP_PAM"
-echo "$PAM_LINE" >> "$TMP_PAM"
+# 2. Ajouter une seule fois la nouvelle configuration
+{
+    echo ""  # Ligne vide pour la lisibilité
+    echo "# Notification Telegram pour su"
+    echo "$PAM_LINE"
+} >> "$TMP_PAM"
 
-# Remplacer le fichier original
-mv "$TMP_PAM" "$PAM_FILE"
-
-log_message "SUCCESS" "Configuration PAM mise à jour"
+# 3. Vérifier le contenu avant de remplacer
+if [ -s "$TMP_PAM" ]; then
+    # Remplacer le fichier original
+    mv "$TMP_PAM" "$PAM_FILE"
+    log_message "SUCCESS" "Configuration PAM mise à jour"
+else
+    rm -f "$TMP_PAM"
+    log_message "ERROR" "Échec de la mise à jour PAM : fichier temporaire vide"
+    exit 1
+fi
 
 # Nettoyage
 log_message "INFO" "Nettoyage des anciennes sauvegardes..."
