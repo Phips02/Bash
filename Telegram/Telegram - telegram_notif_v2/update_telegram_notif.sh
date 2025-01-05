@@ -12,7 +12,7 @@ function log_message() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.22"
+TELEGRAM_VERSION="3.23"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
