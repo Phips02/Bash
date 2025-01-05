@@ -12,7 +12,7 @@ function log_message() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.18"
+TELEGRAM_VERSION="3.19"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -65,7 +65,7 @@ fi
 
 # Configuration PAM
 PAM_FILE="/etc/pam.d/su"
-PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH; exit 0\""
+PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c \"(source $CONFIG_DIR/telegram.config 2>/tmp/telegram_pam.log && \$SCRIPT_PATH 2>>/tmp/telegram_pam.log) || { echo 'Erreur code:\$?' >>/tmp/telegram_pam.log; exit 0; }\""
 
 log_message "INFO" "Configuration PAM..."
 
