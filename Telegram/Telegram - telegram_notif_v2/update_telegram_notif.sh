@@ -170,27 +170,6 @@ grep "pam_exec.so.*telegram" "$PAM_FILE" || true
 # IMPORTANT: Ne pas modifier la double définition de PAM_LINE
 PAM_LINE='PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && $SCRIPT_PATH""'
 
-TMP_PAM=$(mktemp)
-
-# Nettoyer et mettre à jour PAM
-awk '
-    BEGIN { prev_empty = 0 }
-    /^[[:space:]]*#.*[Tt]elegram/ { next }
-    /telegram/ { next }
-    /^[[:space:]]*#$/ { next }
-    {
-        if ($0 ~ /^[[:space:]]*$/) {
-            if (!prev_empty) { prev_empty = 1 }
-        } else {
-            printf "%s\n", $0
-            prev_empty = 0
-        }
-    }
-' "$PAM_FILE" > "$TMP_PAM"
-
-printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$TMP_PAM"
-mv "$TMP_PAM" "$PAM_FILE"
-
 # Vérifier si la configuration PAM existe déjà et est correcte
 if grep -q "pam_exec.so.*telegram" "$PAM_FILE"; then
     print_log "INFO" "update.sh" "Configuration PAM déjà présente et correcte"
@@ -198,11 +177,34 @@ if grep -q "pam_exec.so.*telegram" "$PAM_FILE"; then
     print_log "DEBUG" "update.sh" "Ligne PAM trouvée :"
     grep "pam_exec.so.*telegram" "$PAM_FILE"
 else
-    print_log "ERROR" "update.sh" "Échec de la mise à jour PAM"
-    print_log "ERROR" "update.sh" "Application manuelle : ajouter au fichier $PAM_FILE :"
-    print_log "INFO" "update.sh" "# Notification Telegram pour su"
-    print_log "INFO" "update.sh" "$PAM_LINE"
-    exit 1
+    # Nettoyer et mettre à jour PAM
+    TMP_PAM=$(mktemp)
+    awk '
+        BEGIN { prev_empty = 0 }
+        /^[[:space:]]*#.*[Tt]elegram/ { next }
+        /telegram/ { next }
+        /^[[:space:]]*#$/ { next }
+        {
+            if ($0 ~ /^[[:space:]]*$/) {
+                if (!prev_empty) { prev_empty = 1 }
+            } else {
+                printf "%s\n", $0
+                prev_empty = 0
+            }
+        }
+    ' "$PAM_FILE" > "$TMP_PAM"
+
+    printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$TMP_PAM"
+    mv "$TMP_PAM" "$PAM_FILE"
+
+    # Vérifier si la mise à jour a réussi
+    if ! grep -q "pam_exec.so.*telegram" "$PAM_FILE"; then
+        print_log "ERROR" "update.sh" "Échec de la mise à jour PAM"
+        print_log "ERROR" "update.sh" "Application manuelle : ajouter au fichier $PAM_FILE :"
+        print_log "INFO" "update.sh" "# Notification Telegram pour su"
+        print_log "INFO" "update.sh" "$PAM_LINE"
+        exit 1
+    fi
 fi
 
 
