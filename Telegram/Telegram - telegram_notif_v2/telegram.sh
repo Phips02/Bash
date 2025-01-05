@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.34"
+TELEGRAM_VERSION="3.35"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -72,6 +72,12 @@ check_config() {
 
     return 0
 }
+
+# Vérification des droits root pour l'accès à la config
+if [ "$EUID" -ne 0 ] && [ "$1" != "background" ]; then
+    print_log "ERROR" "telegram.sh" "Ce script doit être exécuté en tant que root"
+    exit 1
+fi
 
 # Vérification de la configuration avant de continuer
 if [ "$1" != "background" ]; then
@@ -228,5 +234,6 @@ if ! telegram_text_send "$TEXT"; then
 fi
 print_log "SUCCESS" "telegram.sh" "Notification envoyée avec succès"
 echo "" # Ajout d'une ligne vide pour un retour propre
+
 
 exit 0

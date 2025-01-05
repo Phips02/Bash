@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.41"
+TELEGRAM_VERSION="3.42"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -178,18 +178,20 @@ print_log "SUCCESS" "update.sh" "Configurations système mises à jour"
 print_log "INFO" "update.sh" "Configuration des permissions..."
 
 # Permissions des répertoires
-chmod 755 "$BASE_DIR"
-chmod 755 "$CONFIG_DIR"
-chmod 755 "$BACKUP_DIR"
+chmod 750 "$BASE_DIR"
+chmod 750 "$CONFIG_DIR"
+chmod 750 "$BACKUP_DIR"
 
 # Permissions des fichiers
-chmod 644 "$CONFIG_PATH"  # Lecture pour tous
-chmod 755 "$SCRIPT_PATH"  # Exécution pour tous
+chmod 600 "$CONFIG_PATH"  # rw------- - Lecture/écriture root uniquement
+chmod 750 "$SCRIPT_PATH"  # rwxr-x--- - Exécution groupe uniquement
 
 # Propriétaire et groupe
-chown -R root:root "$BASE_DIR" "$CONFIG_DIR"
-chmod g+rx "$CONFIG_DIR"  # Lecture et exécution pour le groupe
-chmod o+rx "$CONFIG_DIR"  # Lecture et exécution pour les autres
+chown -R root:telegramnotif "$BASE_DIR" "$CONFIG_DIR"
+chown root:root "$CONFIG_PATH"  # Config accessible uniquement par root
+
+# Réappliquer l'attribut immutable
+chattr +i "$CONFIG_PATH"
 
 if [ $? -ne 0 ]; then
     print_log "ERROR" "update.sh" "Échec de la configuration des permissions"

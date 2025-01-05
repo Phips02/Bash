@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.34"
+TELEGRAM_VERSION="3.35"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -205,17 +205,16 @@ fi
 print_log "INFO" "install.sh" "Configuration des permissions..."
 
 # Permissions des répertoires
-chmod 755 "$BASE_DIR"           # rwxr-xr-x - Permet l'accès au dossier
-chmod 750 "$CONFIG_DIR"         # rwxr-x--- - Restreint l'accès à la config au groupe
+chmod 750 "$BASE_DIR"           # rwxr-x--- - Accès restreint au groupe
+chmod 750 "$CONFIG_DIR"         # rwxr-x--- - Accès restreint au groupe
 
 # Permissions des fichiers
-chmod 640 "$CONFIG_DIR/telegram.config"  # rw-r----- - Lecture groupe uniquement
-chmod 755 "$BASE_DIR/telegram.sh"        # rwxr-xr-x - Exécutable par tous
+chmod 600 "$CONFIG_DIR/telegram.config"  # rw------- - Lecture/écriture root uniquement
+chmod 750 "$BASE_DIR/telegram.sh"        # rwxr-x--- - Exécution groupe uniquement
 
 # Propriétaire et groupe
-chown root:telegramnotif "$CONFIG_DIR"
-chown root:telegramnotif "$CONFIG_DIR/telegram.config"
-chown root:telegramnotif "$BASE_DIR/telegram.sh"
+chown -R root:telegramnotif "$BASE_DIR" "$CONFIG_DIR"
+chown root:root "$CONFIG_DIR/telegram.config"  # Config accessible uniquement par root
 
 # Configuration pour les nouveaux utilisateurs
 print_log "INFO" "install.sh" "Configuration pour les nouveaux utilisateurs..."
@@ -294,5 +293,19 @@ fi
 # Message final
 print_log "SUCCESS" "install.sh" "Installation terminée avec succès!"
 echo "" # Ajout d'une ligne vide pour un retour propre
+
+# Sécurisation des fichiers sensibles
+chattr +i "$CONFIG_DIR/telegram.config"  # Empêcher la modification
+
+# Configuration logrotate
+cat > /etc/logrotate.d/telegram_notif << EOF
+/var/log/telegram_notif/*.log {
+    weekly
+    rotate 4
+    compress
+    missingok
+    notifempty
+}
+EOF
 
 exit 0
