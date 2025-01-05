@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.34"
+TELEGRAM_VERSION="3.35"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -43,12 +43,6 @@ for pkg in curl jq bash adduser; do
         print_log "SUCCESS" "update.sh" "$pkg installé avec succès"
     fi
 done
-
-# Information sur la version actuelle
-if [ -f "$CONFIG_PATH" ]; then
-    CURRENT_VERSION=$(grep "TELEGRAM_VERSION=" "$CONFIG_PATH" | cut -d'"' -f2)
-    print_log "INFO" "update.sh" "Version actuelle : $CURRENT_VERSION"
-fi
 
 # Création des répertoires nécessaires
 mkdir -p "$BASE_DIR" "$CONFIG_DIR" "$BACKUP_DIR"
