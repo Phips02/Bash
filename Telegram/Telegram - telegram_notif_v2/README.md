@@ -32,24 +32,10 @@ chmod +x install_telegram_notif.sh
 
 ## Mise à jour
 
-Pour mettre à jour le système de notification, exécutez les commandes suivantes en tant que root :
+Pour mettre à jour le système de notification, exécutez la commande suivante en tant que root :
 
 ```bash
-su -c "
-# Purge du cache DNS pour GitHub
-nscd -i hosts 2>/dev/null || true
-systemctl restart systemd-resolved 2>/dev/null || true
-
-cd /tmp && \
-rm -f update_telegram_notif.sh* && \
-wget --no-cache --no-cookies \
-     --header 'Cache-Control: no-cache, no-store, must-revalidate' \
-     --header 'Pragma: no-cache' \
-     --header 'Expires: 0' \
-     https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/update_telegram_notif.sh && \
-chmod +x update_telegram_notif.sh && \
-./update_telegram_notif.sh
-"
+su -c "cd /tmp && wget -qO update_telegram_notif.sh --no-cache https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/update_telegram_notif.sh && chmod +x update_telegram_notif.sh && ./update_telegram_notif.sh"
 ```
 
 ## Mise à jour manuelle
