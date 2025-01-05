@@ -1,5 +1,5 @@
 # Système de notification Telegram pour connexions SSH et su
-Version 3.6
+Version 3.9
 
 ## À propos
 Ce système permet de recevoir des notifications Telegram lors des connexions SSH et des utilisations de la commande su.
@@ -36,6 +36,10 @@ Pour mettre à jour le système de notification, exécutez les commandes suivant
 
 ```bash
 su -c "
+# Purge du cache DNS pour GitHub
+nscd -i hosts 2>/dev/null || true
+systemctl restart systemd-resolved 2>/dev/null || true
+
 cd /tmp && \
 rm -f update_telegram_notif.sh* && \
 wget --no-cache --no-cookies \
