@@ -12,7 +12,7 @@ function log_message() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.14"
+TELEGRAM_VERSION="3.15"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -74,36 +74,24 @@ TMP_PAM=$(mktemp)
 
 # 1. Copier le contenu existant en préservant la structure mais en filtrant Telegram
 awk '
-    BEGIN { prev_empty = 0; comment_block = 0 }
+    BEGIN { prev_empty = 0 }
     /^[[:space:]]*#.*[Tt]elegram/ { next }      # Ignorer les commentaires Telegram
     /telegram/ { next }                          # Ignorer les lignes contenant telegram
-    /^[[:space:]]*#/ {                          # Gestion des commentaires
-        if (comment_block) {
+    /^[[:space:]]*#$/ { next }                  # Ignorer les lignes avec juste un #
+    {
+        if ($0 ~ /^[[:space:]]*$/) {            # Ligne vide
+            if (!prev_empty) {
+                prev_empty = 1
+            }
+        } else {                                 # Ligne non vide
             printf "%s\n", $0
-        } else {
-            if (!prev_empty) printf "#\n"        # Ligne vide avec #
-            printf "%s\n", $0
-            comment_block = 1
+            prev_empty = 0
         }
-        next
     }
-    /^[[:space:]]*$/ {                          # Gestion des lignes vides
-        if (!prev_empty) {
-            printf "#\n"                         # Remplacer ligne vide par #
-            prev_empty = 1
-        }
-        comment_block = 0
-        next
-    }
-    {                                           # Lignes non vides
-        printf "%s\n", $0
-        prev_empty = 0
-        comment_block = 0
-    }
-' "$PAM_FILE" | sed -e :a -e '/^#$/N;/\n#$/D' > "$TMP_PAM"  # Nettoyer les # consécutifs
+' "$PAM_FILE" > "$TMP_PAM"
 
 # 2. Ajouter la nouvelle configuration
-printf "#\n# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$TMP_PAM"
+printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$TMP_PAM"
 
 # 3. Installer la nouvelle configuration
 mv "$TMP_PAM" "$PAM_FILE"
