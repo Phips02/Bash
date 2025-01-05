@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.4"
+TELEGRAM_VERSION="3.5"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -45,6 +45,8 @@ if [ -f "$CONFIG_PATH" ]; then
 fi
 
 # Mise à jour des fichiers
+log_message "INFO" "Exécution du script de mise à jour version $TELEGRAM_VERSION"
+
 log_message "INFO" "Téléchargement des nouveaux fichiers..."
 REPO_URL="https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2"
 
@@ -98,18 +100,6 @@ cd "$BACKUP_DIR" && ls -t telegram.* | tail -n +11 | xargs -r rm
 # Message final
 log_message "SUCCESS" "Mise à jour terminée avec succès!"
 log_message "INFO" "Redémarrez votre session pour activer les changements"
-
-# Vérification de la nouvelle version
-log_message "INFO" "Vérification de la version installée..."
-INSTALLED_VERSION=$(grep "TELEGRAM_VERSION=" "$CONFIG_PATH" | cut -d'"' -f2)
-if [ "$INSTALLED_VERSION" = "$TELEGRAM_VERSION" ]; then
-    log_message "SUCCESS" "Version $INSTALLED_VERSION installée avec succès"
-    if [ -n "$CURRENT_VERSION" ] && [ "$CURRENT_VERSION" != "$INSTALLED_VERSION" ]; then
-        log_message "INFO" "Mise à jour effectuée : $CURRENT_VERSION -> $INSTALLED_VERSION"
-    fi
-else
-    log_message "WARNING" "Version installée ($INSTALLED_VERSION) différente de la version attendue ($TELEGRAM_VERSION)"
-fi
 
 # Configuration des permissions
 log_message "INFO" "Configuration des permissions..."

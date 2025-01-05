@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.4"
+TELEGRAM_VERSION="3.5"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -259,6 +259,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+log_message "INFO" "Exécution du script d'installation version $TELEGRAM_VERSION"
 log_message "SUCCESS" "Installation réussie!"
 log_message "INFO" "Déconnectez-vous et reconnectez-vous pour activer les notifications"
 
@@ -267,15 +268,6 @@ log_message "INFO" "Auto-destruction du script..."
 rm -f "$0"
 if [ $? -ne 0 ]; then
     log_message "WARNING" "Impossible de supprimer le script d'installation"
-fi
-
-# Vérification de la version installée
-log_message "INFO" "Vérification de la version installée..."
-INSTALLED_VERSION=$(grep "TELEGRAM_VERSION=" "$CONFIG_PATH" | cut -d'"' -f2)
-if [ "$INSTALLED_VERSION" = "3.4" ]; then
-    log_message "SUCCESS" "Installation de la version $INSTALLED_VERSION réussie"
-else
-    log_message "WARNING" "Version installée ($INSTALLED_VERSION) incorrecte"
 fi
 
 exit 0
