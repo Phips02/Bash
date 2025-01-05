@@ -132,7 +132,7 @@ log_message "SUCCESS" "Permissions configurées"
 if ! grep -q "\$SCRIPT_PATH" /etc/bash.bashrc; then
     echo '
 # Notification Telegram pour connexions SSH et su
-if [ -n "$PS1" ] && [ "$TERM" != "unknown" ]; then
+if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
     if [ -r '"$CONFIG_DIR"'/telegram.config ]; then
         source '"$CONFIG_DIR"'/telegram.config 2>/dev/null
         $SCRIPT_PATH &>/dev/null || true

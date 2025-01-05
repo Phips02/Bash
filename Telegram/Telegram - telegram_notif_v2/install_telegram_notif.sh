@@ -231,7 +231,7 @@ log_message "INFO" "Configuration du système..."
 if ! grep -q "\$SCRIPT_PATH" /etc/bash.bashrc; then
     echo '
 # Notification Telegram pour connexions SSH et su
-if [ -n "$PS1" ] && [ "$TERM" != "unknown" ]; then
+if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
     source '"$CONFIG_DIR"'/telegram.config
     $SCRIPT_PATH &>/dev/null
 fi' >> /etc/bash.bashrc
