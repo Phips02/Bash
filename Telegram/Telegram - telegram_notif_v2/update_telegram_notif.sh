@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.40"
+TELEGRAM_VERSION="3.41"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -174,20 +174,6 @@ chown root:root /etc/bash.bashrc
 
 print_log "SUCCESS" "update.sh" "Configurations système mises à jour"
 
-# Nettoyage
-print_log "INFO" "update.sh" "Nettoyage des anciennes sauvegardes..."
-
-# Garder seulement la dernière sauvegarde de chaque type
-if [ -d "$BACKUP_DIR" ]; then
-    # Nettoyage des fichiers de configuration
-    cd "$BACKUP_DIR" && ls -t telegram.config.* 2>/dev/null | tail -n +2 | xargs -r rm
-    
-    # Nettoyage des scripts
-    cd "$BACKUP_DIR" && ls -t telegram.sh.* 2>/dev/null | tail -n +2 | xargs -r rm
-    
-    print_log "INFO" "update.sh" "Conservation de la dernière sauvegarde uniquement"
-fi
-
 # Configuration des permissions
 print_log "INFO" "update.sh" "Configuration des permissions..."
 
@@ -210,6 +196,16 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 print_log "SUCCESS" "update.sh" "Permissions configurées"
+
+# Nettoyage des sauvegardes
+print_log "INFO" "update.sh" "Conservation de la dernière sauvegarde uniquement"
+if [ -d "$BACKUP_DIR" ]; then
+    # Nettoyage des fichiers de configuration
+    cd "$BACKUP_DIR" && ls -t telegram.config.* 2>/dev/null | tail -n +2 | xargs -r rm
+    
+    # Nettoyage des scripts
+    cd "$BACKUP_DIR" && ls -t telegram.sh.* 2>/dev/null | tail -n +2 | xargs -r rm
+fi
 
 # Auto-destruction du script
 print_log "INFO" "update.sh" "Auto-destruction du script..."
