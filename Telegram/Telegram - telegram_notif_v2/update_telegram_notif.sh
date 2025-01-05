@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.41"
+TELEGRAM_VERSION="4.0"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -108,6 +108,9 @@ fi
 
 # Configuration PAM
 PAM_FILE="/etc/pam.d/su"
+# IMPORTANT: Ne pas modifier la double définition de PAM_LINE
+# Cette syntaxe particulière est nécessaire pour éviter des problèmes
+# d'interprétation des variables dans le contexte PAM
 PAM_LINE='PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && $SCRIPT_PATH""'
 
 # Mise à jour des configurations système

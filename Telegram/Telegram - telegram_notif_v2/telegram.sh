@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.34"
+TELEGRAM_VERSION="4.0"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
