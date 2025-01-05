@@ -5,13 +5,11 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.29"
+TELEGRAM_VERSION="3.10"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
 CONFIG_DIR="/etc/telegram/notif_connexion"
-SCRIPT_PATH="$BASE_DIR/telegram.sh"
-CONFIG_PATH="$CONFIG_DIR/telegram.config"
 
 # Fonction pour le logging avec horodatage et niveau
 function log_message() {
@@ -27,7 +25,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 # Vérification et installation des dépendances
-for pkg in curl jq bash adduser; do
+for pkg in curl jq bash; do
     log_message "INFO" "Vérification de $pkg..."
     if ! command -v "$pkg" &> /dev/null; then
         log_message "WARNING" "$pkg n'est pas installé. Installation en cours..."
@@ -91,6 +89,65 @@ if [ -z "$TELEGRAM_CHAT_ID" ]; then
     done
 fi
 
+# Gestion du hostname
+current_hostname=$(hostname)
+log_message "INFO" "Hostname actuel du serveur : $current_hostname"
+
+while true; do
+    read -p "Voulez-vous modifier le hostname ? (o/n) : " change_hostname
+    case $change_hostname in
+        [oO]*)
+            while true; do
+                read -p "Entrez le nouveau hostname : " new_hostname
+                if [[ $new_hostname =~ ^[a-zA-Z0-9-]+$ ]]; then
+                    # Sauvegarde du hostname actuel
+                    cp /etc/hostname /etc/hostname.bak
+                    if [ $? -ne 0 ]; then
+                        log_message "ERROR" "Échec de la sauvegarde du hostname"
+                        continue
+                    fi
+                    
+                    # Modification du hostname
+                    echo "$new_hostname" > /etc/hostname
+                    if [ $? -ne 0 ]; then
+                        log_message "ERROR" "Échec de la modification du hostname"
+                        continue
+                    fi
+                    
+                    # Mise à jour des hosts
+                    sed -i "s/$current_hostname/$new_hostname/g" /etc/hosts
+                    if [ $? -ne 0 ]; then
+                        log_message "ERROR" "Échec de la mise à jour des hosts"
+                        continue
+                    fi
+                    
+                    # Application du nouveau hostname
+                    hostnamectl set-hostname "$new_hostname"
+                    if [ $? -ne 0 ]; then
+                        log_message "ERROR" "Échec de l'application du nouveau hostname"
+                        continue
+                    fi
+                    
+                    HOSTNAME=$new_hostname
+                    export HOSTNAME
+                    log_message "SUCCESS" "Hostname modifié avec succès : $new_hostname"
+                    break
+                else
+                    log_message "ERROR" "Format de hostname invalide. Utilisez uniquement des lettres, chiffres et tirets"
+                fi
+            done
+            break
+            ;;
+        [nN]*)
+            HOSTNAME=$current_hostname
+            break
+            ;;
+        *)
+            log_message "ERROR" "Répondez par 'o' pour oui ou 'n' pour non"
+            ;;
+    esac
+done
+
 # Téléchargement et installation des fichiers
 REPO_URL="https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2"
 
@@ -112,7 +169,7 @@ log_message "INFO" "Création du fichier de configuration..."
 cat > "$CONFIG_DIR/telegram.config" << EOF
 ###############################################################################
 # Configuration Telegram pour les notifications de connexion
-# Version 3.5
+# Version 3.4
 ###############################################################################
 
 # Configuration du bot
@@ -140,40 +197,6 @@ if [ $? -ne 0 ]; then
     log_message "ERROR" "Échec de la création du fichier de configuration"
     exit 1
 fi
-
-# Configuration PAM
-PAM_FILE="/etc/pam.d/su"
-PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c 'source $CONFIG_DIR/telegram.config 2>/dev/null && $SCRIPT_PATH'"
-
-log_message "INFO" "Configuration PAM..."
-
-# Créer un fichier temporaire
-TMP_PAM=$(mktemp)
-
-# 1. Copier le contenu existant en préservant la structure mais en filtrant Telegram
-awk '
-    BEGIN { prev_empty = 0 }
-    /^[[:space:]]*#.*[Tt]elegram/ { next }      # Ignorer les commentaires Telegram
-    /telegram/ { next }                          # Ignorer les lignes contenant telegram
-    /^[[:space:]]*#$/ { next }                  # Ignorer les lignes avec juste un #
-    {
-        if ($0 ~ /^[[:space:]]*$/) {            # Ligne vide
-            if (!prev_empty) {
-                prev_empty = 1
-            }
-        } else {                                 # Ligne non vide
-            printf "%s\n", $0
-            prev_empty = 0
-        }
-    }
-' "$PAM_FILE" > "$TMP_PAM"
-
-# 2. Ajouter la nouvelle configuration
-printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$TMP_PAM"
-
-# 3. Installer la nouvelle configuration
-mv "$TMP_PAM" "$PAM_FILE"
-log_message "SUCCESS" "Configuration PAM mise à jour"
 
 # Configuration des permissions
 log_message "INFO" "Configuration des permissions..."
@@ -212,21 +235,33 @@ if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
     source '"$CONFIG_DIR"'/telegram.config
     $SCRIPT_PATH &>/dev/null
 fi' >> /etc/bash.bashrc
-    chmod 644 /etc/bash.bashrc
-    chown root:root /etc/bash.bashrc
     if [ $? -ne 0 ]; then
         log_message "ERROR" "Échec de la configuration de bash.bashrc"
         exit 1
     fi
 fi
 
+# Configuration PAM
+if ! grep -q "session.*telegram.sh" /etc/pam.d/su; then
+    echo "# Notification Telegram pour su
+session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\"" >> /etc/pam.d/su
+    if [ $? -ne 0 ]; then
+        log_message "ERROR" "Échec de la configuration PAM"
+        exit 1
+    fi
+fi
+
 # Test de l'installation
 log_message "INFO" "Test de l'installation..."
-"$BASE_DIR/telegram.sh" silent &
-test_pid=$!
+"$BASE_DIR/telegram.sh"
+if [ $? -ne 0 ]; then
+    log_message "ERROR" "Le test a échoué, vérifiez la configuration"
+    exit 1
+fi
 
 log_message "INFO" "Exécution du script d'installation version $TELEGRAM_VERSION"
 log_message "SUCCESS" "Installation réussie!"
+log_message "INFO" "Déconnectez-vous et reconnectez-vous pour activer les notifications"
 
 # Auto-destruction du script
 log_message "INFO" "Auto-destruction du script..."
@@ -235,10 +270,4 @@ if [ $? -ne 0 ]; then
     log_message "WARNING" "Impossible de supprimer le script d'installation"
 fi
 
-# Attendre la fin du test silencieusement
-wait $test_pid &>/dev/null
-
-# Message final
-echo ""
-log_message "INFO" "Déconnectez-vous et reconnectez-vous pour activer les notifications"
-echo ""
+exit 0
