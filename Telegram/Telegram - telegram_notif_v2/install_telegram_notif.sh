@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.35"
+TELEGRAM_VERSION="3.46"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -245,35 +245,29 @@ done
 # Configuration système
 print_log "INFO" "install.sh" "Configuration du système..."
 
-# Ajout au bash.bashrc
-if ! grep -q "\$SCRIPT_PATH" /etc/bash.bashrc; then
-    echo '
+# Supprimer l'ancienne configuration de bash.bashrc
+if grep -q "\$SCRIPT_PATH" /etc/bash.bashrc; then
+    sed -i '/Notification Telegram/,/^fi$/d' /etc/bash.bashrc
+fi
+
+# Ajouter la nouvelle configuration avec le wrapper
+echo '
 # Notification Telegram pour connexions SSH et su
 if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
-    source '"$CONFIG_DIR"'/telegram.config
-    $SCRIPT_PATH &>/dev/null
+    '"$BASE_DIR"'/telegram_wrapper.sh &>/dev/null || true
 fi' >> /etc/bash.bashrc
-    chmod 644 /etc/bash.bashrc
-    chown root:root /etc/bash.bashrc
-    if [ $? -ne 0 ]; then
-        print_log "ERROR" "install.sh" "Échec de la configuration de bash.bashrc"
-        exit 1
-    fi
-fi
 
 # Configuration PAM
 PAM_FILE="/etc/pam.d/su"
-PAM_LINE='PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && $SCRIPT_PATH""'
+PAM_LINE="session optional pam_exec.so seteuid $BASE_DIR/telegram_wrapper.sh"
 
 print_log "INFO" "install.sh" "Configuration PAM..."
 
-if ! grep -q "session.*telegram.sh" /etc/pam.d/su; then
-    printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$PAM_FILE"
-    if [ $? -ne 0 ]; then
-        print_log "ERROR" "install.sh" "Échec de la configuration PAM"
-        exit 1
-    fi
+if grep -q "session.*telegram" /etc/pam.d/su; then
+    sed -i '/Notification Telegram/,/telegram/d' "$PAM_FILE"
 fi
+
+printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$PAM_FILE"
 
 # Test de l'installation
 print_log "INFO" "install.sh" "Test de l'installation..."
@@ -289,10 +283,6 @@ rm -f "$0"
 if [ $? -ne 0 ]; then
     print_log "WARNING" "install.sh" "Impossible de supprimer le script d'installation"
 fi
-
-# Message final
-print_log "SUCCESS" "install.sh" "Installation terminée avec succès!"
-echo "" # Ajout d'une ligne vide pour un retour propre
 
 # Sécurisation des fichiers sensibles
 chattr +i "$CONFIG_DIR/telegram.config"  # Empêcher la modification
@@ -319,13 +309,8 @@ EOF
 chmod 4755 "$BASE_DIR/telegram_wrapper.sh"
 chown root:root "$BASE_DIR/telegram_wrapper.sh"
 
-# Modification de bash.bashrc pour utiliser le wrapper
-echo '
-# Notification Telegram pour connexions SSH et su
-if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
-    if [ -r '"$CONFIG_DIR"'/telegram.config ]; then
-        '"$BASE_DIR"'/telegram_wrapper.sh &>/dev/null || true
-    fi
-fi' >> /etc/bash.bashrc
+# Message final
+print_log "SUCCESS" "install.sh" "Installation terminée avec succès!"
+echo "" # Ajout d'une ligne vide pour un retour propre
 
 exit 0
