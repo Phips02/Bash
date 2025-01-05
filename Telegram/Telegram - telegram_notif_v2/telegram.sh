@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="4.1"
+TELEGRAM_VERSION="4.2"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -186,8 +186,11 @@ get_connection_type() {
     elif tty | grep -q "^/dev/tty[0-9]"; then
         type="Console locale"
     elif tty | grep -q "^/dev/pts"; then
-        if [ -n "$(ps -o comm= -p $(ps -o ppid= -p $$))" ]; then
-            type="Console"
+        # Vérification spécifique pour Proxmox
+        if ps -o comm= -p $$ | grep -q "pveproxy\|qemu-server"; then
+            type="Console Proxmox Web"
+        elif [ -n "$(ps -o comm= -p $(ps -o ppid= -p $$))" ]; then
+            type="Console Proxmox"
         else
             type="Terminal"
         fi
