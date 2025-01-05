@@ -12,7 +12,7 @@ function log_message() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.21"
+TELEGRAM_VERSION="3.22"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -128,17 +128,34 @@ if [ $? -ne 0 ]; then
 fi
 log_message "SUCCESS" "Permissions configurées"
 
-# Ajout au bash.bashrc
-if ! grep -q "\$SCRIPT_PATH" /etc/bash.bashrc; then
-    echo '
+# Nettoyage et ajout au bash.bashrc
+log_message "INFO" "Mise à jour de bash.bashrc..."
+
+# Créer un fichier temporaire
+TMP_BASHRC=$(mktemp)
+
+# Nettoyer les anciennes configurations
+awk '
+    /^# Notification Telegram/ { skip = 1; next }
+    /^if.*telegram/ { skip = 1; next }
+    /telegram.sh/ { skip = 1; next }
+    skip == 1 && /^fi/ { skip = 0; next }
+    skip != 1 { print }
+' /etc/bash.bashrc > "$TMP_BASHRC"
+
+# Ajouter la nouvelle configuration
+echo '
 # Notification Telegram pour connexions SSH et su
 if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
     if [ -r '"$CONFIG_DIR"'/telegram.config ]; then
         source '"$CONFIG_DIR"'/telegram.config 2>/dev/null
         $SCRIPT_PATH &>/dev/null || true
     fi
-fi' >> /etc/bash.bashrc
-fi
+fi' >> "$TMP_BASHRC"
+
+# Installer la nouvelle configuration
+mv "$TMP_BASHRC" /etc/bash.bashrc
+log_message "SUCCESS" "Configuration bash.bashrc mise à jour"
 
 # Auto-destruction du script
 log_message "INFO" "Auto-destruction du script..."
