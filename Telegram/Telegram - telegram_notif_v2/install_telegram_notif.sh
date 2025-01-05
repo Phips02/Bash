@@ -167,12 +167,17 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Retirer l'attribut immutable s'il existe
+if [ -f "$CONFIG_DIR/telegram.config" ]; then
+    chattr -i "$CONFIG_DIR/telegram.config" 2>/dev/null
+fi
+
 # Création du fichier de configuration
 print_log "INFO" "install.sh" "Création du fichier de configuration..."
 cat > "$CONFIG_DIR/telegram.config" << EOF
 ###############################################################################
 # Configuration Telegram pour les notifications de connexion
-# Version 3.4
+# Version 3.53
 ###############################################################################
 
 # Configuration du bot
@@ -200,6 +205,9 @@ if [ $? -ne 0 ]; then
     print_log "ERROR" "install.sh" "Échec de la création du fichier de configuration"
     exit 1
 fi
+
+# Réappliquer l'attribut immutable
+chattr +i "$CONFIG_DIR/telegram.config"
 
 # Configuration des permissions
 print_log "INFO" "install.sh" "Configuration des permissions..."
