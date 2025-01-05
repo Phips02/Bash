@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="4.2"
+TELEGRAM_VERSION="4.4"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -96,15 +96,20 @@ REPO_URL="https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%
 # Téléchargement et installation du script principal
 wget -q "$REPO_URL/telegram.sh" -O "$SCRIPT_PATH"
 if [ $? -ne 0 ]; then
-    print_log "ERROR" "update.sh" "Échec du téléchargement du script"
+    print_log "ERROR" "update.sh" "Échec du téléchargement du script principal"
     exit 1
 fi
 
-chmod 750 "$SCRIPT_PATH"
+# Téléchargement des fonctions
+wget -q "$REPO_URL/telegram.functions.sh" -O "$BASE_DIR/telegram.functions.sh"
 if [ $? -ne 0 ]; then
-    print_log "ERROR" "update.sh" "Échec de la configuration des permissions"
+    print_log "ERROR" "update.sh" "Échec du téléchargement des fonctions"
     exit 1
 fi
+
+# Configuration des permissions
+chmod 750 "$SCRIPT_PATH"
+chmod 640 "$BASE_DIR/telegram.functions.sh"
 
 # Configuration PAM
 PAM_FILE="/etc/pam.d/su"

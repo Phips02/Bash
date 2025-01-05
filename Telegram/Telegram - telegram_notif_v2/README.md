@@ -1,5 +1,5 @@
 # Système de notification Telegram pour connexions SSH et su
-Version 4.0
+Version 4.4
 
 ## À propos
 Ce système permet de recevoir des notifications Telegram lors des connexions SSH et des utilisations de la commande su.
@@ -20,6 +20,7 @@ su -c "apt update && apt install curl wget jq git adduser -y && cd /tmp && wget 
 
 /usr/local/bin/telegram/notif_connexion/
 └── telegram.sh                  # Script principal
+└── telegram.functions.sh        # Fonctions communes
 
 /etc/pam.d/su                   # Configuration PAM pour les notifications su
 /etc/bash.bashrc                # Configuration système pour l'exécution automatique

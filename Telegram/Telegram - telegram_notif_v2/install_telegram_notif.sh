@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="4.1"
+TELEGRAM_VERSION="4.4"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -154,25 +154,32 @@ done
 # Téléchargement et installation des fichiers
 REPO_URL="https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2"
 
-print_log "INFO" "install.sh" "Téléchargement de telegram.sh..."
+print_log "INFO" "install.sh" "Téléchargement des fichiers..."
+
+# Script principal
 wget -q "${REPO_URL}/telegram.sh" -O "${BASE_DIR}/telegram.sh"
 if [ $? -ne 0 ]; then
-    print_log "ERROR" "install.sh" "Échec du téléchargement du script"
+    print_log "ERROR" "install.sh" "Échec du téléchargement du script principal"
     exit 1
 fi
 
-chmod +x "${BASE_DIR}/telegram.sh"
+# Fichier de fonctions
+wget -q "${REPO_URL}/telegram.functions.sh" -O "${BASE_DIR}/telegram.functions.sh"
 if [ $? -ne 0 ]; then
-    print_log "ERROR" "install.sh" "Échec de l'attribution des droits d'exécution"
+    print_log "ERROR" "install.sh" "Échec du téléchargement des fonctions"
     exit 1
 fi
+
+# Configuration des permissions
+chmod 750 "${BASE_DIR}/telegram.sh"
+chmod 640 "${BASE_DIR}/telegram.functions.sh"
 
 # Création du fichier de configuration
 print_log "INFO" "install.sh" "Création du fichier de configuration..."
 cat > "$CONFIG_DIR/telegram.config" << EOF
 ###############################################################################
 # Configuration Telegram pour les notifications de connexion
-# Version 4.0
+# Version 4.4
 ###############################################################################
 
 # Configuration du bot

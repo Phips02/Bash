@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="4.2"
+TELEGRAM_VERSION="4.4"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -133,48 +133,10 @@ function telegram_text_send() {
     return 0
 }
 
-# Fonction pour détecter l'IP source avec gestion d'erreurs améliorée
-get_source_ip() {
-    if [ -n "$SSH_CONNECTION" ]; then
-        echo "$SSH_CONNECTION" | awk '{print $1}'
-        return
-    fi
-
-    if [ -z "$SSH_CONNECTION" ] && [ "$TERM" != "unknown" ]; then
-        local ppid=$PPID
-        while [ "$ppid" -ne 1 ]; do
-            if ! ps -p "$ppid" >/dev/null 2>&1; then
-                break
-            fi
-
-            local parent_cmd
-            parent_cmd=$(ps -o cmd= -p "$ppid" 2>/dev/null)
-            if [ $? -ne 0 ]; then
-                break
-            fi
-
-            if [[ "$parent_cmd" == *"sshd"* ]]; then
-                local parent_ssh_ip
-                parent_ssh_ip=$(ss -tnp 2>/dev/null | grep "$ppid" | awk '{print $3}' | cut -d':' -f1)
-                if [ -n "$parent_ssh_ip" ]; then
-                    echo "$parent_ssh_ip"
-                    return
-                fi
-            fi
-
-            if ! ppid=$(ps -o ppid= -p "$ppid" 2>/dev/null); then
-                break
-            fi
-            ppid=$(echo "$ppid" | tr -d ' ')
-            
-            if ! [[ "$ppid" =~ ^[0-9]+$ ]]; then
-                break
-            fi
-        done
-    fi
-
-    echo "Indisponible"
-}
+# Charger les fonctions
+if [ -f "$BASE_DIR/telegram.functions.sh" ]; then
+    source "$BASE_DIR/telegram.functions.sh"
+fi
 
 # Détection du type de connexion
 get_connection_type() {
