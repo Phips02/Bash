@@ -62,22 +62,24 @@ if [ $? -ne 0 ]; then
 fi
 
 # Configuration PAM
-PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\""
 PAM_FILE="/etc/pam.d/su"
+PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c \"source $CONFIG_DIR/telegram.config 2>/dev/null && \$SCRIPT_PATH\""
 
-log_message "INFO" "Vérification de la configuration PAM..."
+log_message "INFO" "Configuration PAM..."
 
-# Sauvegarder le contenu original sans les lignes Telegram
-awk '!/telegram/' "$PAM_FILE" > "$PAM_FILE.new"
+# Créer un fichier temporaire
+TMP_PAM=$(mktemp)
 
-# Ajouter une seule fois la nouvelle configuration
-{
-    echo "# Notification Telegram pour su"
-    echo "$PAM_LINE"
-} >> "$PAM_FILE.new"
+# Copier toutes les lignes sauf celles contenant telegram
+grep -v "telegram" "$PAM_FILE" > "$TMP_PAM"
 
-# Remplacer l'ancien fichier
-mv "$PAM_FILE.new" "$PAM_FILE"
+# Ajouter la nouvelle configuration
+echo "# Notification Telegram pour su" >> "$TMP_PAM"
+echo "$PAM_LINE" >> "$TMP_PAM"
+
+# Remplacer le fichier original
+mv "$TMP_PAM" "$PAM_FILE"
+
 log_message "SUCCESS" "Configuration PAM mise à jour"
 
 # Nettoyage
@@ -100,23 +102,39 @@ else
     log_message "WARNING" "Version installée ($INSTALLED_VERSION) différente de la version attendue ($TELEGRAM_VERSION)"
 fi
 
-# Après le téléchargement des fichiers, ajoutons la configuration des permissions
+# Configuration des permissions
 log_message "INFO" "Configuration des permissions..."
 
 # Permissions des répertoires
-chmod 755 "$BASE_DIR" "$CONFIG_DIR" "$BACKUP_DIR"
+chmod 755 "$BASE_DIR"
+chmod 755 "$CONFIG_DIR"
+chmod 755 "$BACKUP_DIR"
 
 # Permissions des fichiers
-chmod 640 "$CONFIG_PATH"
-chmod 750 "$SCRIPT_PATH"
+chmod 644 "$CONFIG_PATH"  # Lecture pour tous
+chmod 755 "$SCRIPT_PATH"  # Exécution pour tous
 
 # Propriétaire et groupe
-chown -R root:telegramnotif "$BASE_DIR" "$CONFIG_DIR"
+chown -R root:root "$BASE_DIR" "$CONFIG_DIR"
+chmod g+rx "$CONFIG_DIR"  # Lecture et exécution pour le groupe
+chmod o+rx "$CONFIG_DIR"  # Lecture et exécution pour les autres
 
 if [ $? -ne 0 ]; then
     log_message "ERROR" "Échec de la configuration des permissions"
     exit 1
 fi
 log_message "SUCCESS" "Permissions configurées"
+
+# Ajout au bash.bashrc
+if ! grep -q "\$SCRIPT_PATH" /etc/bash.bashrc; then
+    echo '
+# Notification Telegram pour connexions SSH et su
+if [ -n "$PS1" ] && [ "$TERM" != "unknown" ]; then
+    if [ -r '"$CONFIG_DIR"'/telegram.config ]; then
+        source '"$CONFIG_DIR"'/telegram.config 2>/dev/null
+        $SCRIPT_PATH &>/dev/null || true
+    fi
+fi' >> /etc/bash.bashrc
+fi
 
 exit 0

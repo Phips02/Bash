@@ -55,6 +55,16 @@ if ! getent group telegramnotif > /dev/null; then
     log_message "SUCCESS" "Groupe telegramnotif créé"
 fi
 
+# Ajout de l'utilisateur au groupe si nécessaire
+if ! groups "$USER" | grep -q "telegramnotif"; then
+    usermod -a -G telegramnotif "$USER"
+    if [ $? -ne 0 ]; then
+        log_message "WARNING" "Impossible d'ajouter l'utilisateur au groupe telegramnotif"
+    else
+        log_message "SUCCESS" "Utilisateur ajouté au groupe telegramnotif"
+    fi
+fi
+
 # Validation du TOKEN Telegram
 if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
     while true; do
