@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.51"
+TELEGRAM_VERSION="3.53"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -213,15 +213,19 @@ chmod 755 "$SCRIPT_PATH"        # rwxr-xr-x - Exécution pour tous
 # Propriétaire et groupe
 chown -R root:root "$BASE_DIR" "$CONFIG_DIR"
 
-# Configuration bash.bashrc
-echo '
-# Notification Telegram pour connexions SSH et su
-if [ -n "$SSH_CONNECTION" ]; then
-    '"$SCRIPT_PATH"' &>/dev/null || true
-fi' >> /etc/bash.bashrc
-
 # Configuration PAM
-PAM_LINE="session optional pam_exec.so seteuid $SCRIPT_PATH"
+PAM_LINE='session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && '$SCRIPT_PATH'"'
+
+# Configuration pour SSH
+SSH_PAM_FILE="/etc/pam.d/sshd"
+printf "# Notification Telegram pour SSH\n%s\n" "$PAM_LINE" >> "$SSH_PAM_FILE"
+
+# Configuration pour su
+SU_PAM_FILE="/etc/pam.d/su"
+printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$SU_PAM_FILE"
+
+# Suppression de la configuration bash.bashrc qui n'est plus nécessaire
+sed -i '/Notification Telegram/,/^fi$/d' /etc/bash.bashrc
 
 # Test de l'installation
 print_log "INFO" "install.sh" "Test de l'installation..."
