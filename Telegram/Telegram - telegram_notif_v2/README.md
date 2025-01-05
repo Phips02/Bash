@@ -1,5 +1,5 @@
 # Système de notification Telegram pour connexions SSH et su
-Version 3.46
+Version 3.48
 
 ## À propos
 Ce système permet de recevoir des notifications Telegram lors des connexions SSH et des utilisations de la commande su.

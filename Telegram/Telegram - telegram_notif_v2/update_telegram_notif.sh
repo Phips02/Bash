@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.46"
+TELEGRAM_VERSION="3.48"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -108,7 +108,16 @@ fi
 
 # Configuration PAM
 PAM_FILE="/etc/pam.d/su"
-PAM_LINE='PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && $SCRIPT_PATH""'
+#PAM_LINE='PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && $SCRIPT_PATH""'
+
+PAM_LINE="session optional pam_exec.so seteuid $BASE_DIR/telegram_wrapper.sh"
+
+if grep -q "session.*telegram" "$PAM_FILE"; then
+    sed -i '/Notification Telegram/,/telegram/d' "$PAM_FILE"
+fi
+
+printf "# Notification Telegram pour su/sudo uniquement\n%s\n" "$PAM_LINE" >> "$PAM_FILE"
+
 
 # Mise à jour des configurations système
 print_log "INFO" "update.sh" "Mise à jour des configurations système..."
@@ -172,10 +181,8 @@ chown root:root "$BASE_DIR/telegram_wrapper.sh"
 # Modification de bash.bashrc
 echo '
 # Notification Telegram pour connexions SSH et su
-if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
-    if [ -r '"$CONFIG_DIR"'/telegram.config ]; then
-        '"$BASE_DIR"'/telegram_wrapper.sh &>/dev/null || true
-    fi
+if [ -n "$SSH_CONNECTION" ] && [ -z "$PAM_TYPE" ]; then
+    '"$BASE_DIR"'/telegram_wrapper.sh &>/dev/null || true
 fi' >> "$TMP_BASHRC"
 
 mv "$TMP_BASHRC" /etc/bash.bashrc

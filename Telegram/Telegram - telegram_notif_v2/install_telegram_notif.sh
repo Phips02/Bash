@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.46"
+TELEGRAM_VERSION="3.48"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -253,7 +253,7 @@ fi
 # Ajouter la nouvelle configuration avec le wrapper
 echo '
 # Notification Telegram pour connexions SSH et su
-if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
+if [ -n "$SSH_CONNECTION" ] && [ -z "$PAM_TYPE" ]; then
     '"$BASE_DIR"'/telegram_wrapper.sh &>/dev/null || true
 fi' >> /etc/bash.bashrc
 
@@ -263,11 +263,11 @@ PAM_LINE="session optional pam_exec.so seteuid $BASE_DIR/telegram_wrapper.sh"
 
 print_log "INFO" "install.sh" "Configuration PAM..."
 
-if grep -q "session.*telegram" /etc/pam.d/su; then
+if grep -q "session.*telegram" "$PAM_FILE"; then
     sed -i '/Notification Telegram/,/telegram/d' "$PAM_FILE"
 fi
 
-printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$PAM_FILE"
+printf "# Notification Telegram pour su/sudo uniquement\n%s\n" "$PAM_LINE" >> "$PAM_FILE"
 
 # Test de l'installation
 print_log "INFO" "install.sh" "Test de l'installation..."
