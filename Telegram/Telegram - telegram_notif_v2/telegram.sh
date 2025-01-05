@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.29"
+TELEGRAM_VERSION="3.30"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -75,30 +75,23 @@ check_config() {
 
 # Vérification de la configuration avant de continuer
 if ! check_config; then
-    [ "$1" != "silent" ] && print_log "ERROR" "telegram.sh" "Échec de la vérification de la configuration"
+    print_log "ERROR" "telegram.sh" "Échec de la vérification de la configuration"
     exit 1
 fi
 
 # Exécution en arrière-plan
-if [ "$1" != "background" ] && [ "$1" != "silent" ]; then
-    [ "$1" != "silent" ] && print_log "INFO" "telegram.sh" "Démarrage en arrière-plan..."
-    $0 silent & disown
+if [ "$1" != "background" ]; then
+    print_log "INFO" "telegram.sh" "Démarrage en arrière-plan..."
+    $0 background & disown
     exit 0
 fi
 
-# Mode silencieux pour les tests d'installation
-if [ "$1" = "silent" ]; then
-    exec 1>/dev/null 2>&1
-fi
-
 # Vérification des dépendances
-if [ "$1" != "silent" ]; then
-    print_log "INFO" "telegram.sh" "Vérification des dépendances..."
-fi
+print_log "INFO" "telegram.sh" "Vérification des dépendances..."
 
 for dep in jq curl; do
     if ! command -v "$dep" &> /dev/null; then
-        [ "$1" != "silent" ] && print_log "ERROR" "telegram.sh" "Dépendance manquante : $dep"
+        print_log "ERROR" "telegram.sh" "Dépendance manquante : $dep"
         exit 1
     fi
 done
@@ -225,13 +218,11 @@ IP Source : $IP_LOCAL %0A\
 IP Publique : $IP_PUBLIC %0A\
 Pays : $COUNTRY"
 
-# Envoi du message uniquement si pas en mode silencieux
-if [ "$1" != "silent" ]; then
-    if ! telegram_text_send "$TEXT"; then
-        print_log "ERROR" "telegram.sh" "Échec de l'envoi de la notification"
-        exit 1
-    fi
-    print_log "SUCCESS" "telegram.sh" "Notification envoyée avec succès"
+# Envoi du message
+if ! telegram_text_send "$TEXT"; then
+    print_log "ERROR" "telegram.sh" "Échec de l'envoi de la notification"
+    exit 1
 fi
+print_log "SUCCESS" "telegram.sh" "Notification envoyée avec succès"
 
 exit 0
