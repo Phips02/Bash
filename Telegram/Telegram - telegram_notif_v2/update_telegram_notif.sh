@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="4.4"
+TELEGRAM_VERSION="4.5"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -86,6 +86,7 @@ if [ -f "$CONFIG_PATH" ]; then
     BACKUP_DATE=$(date +%Y%m%d_%H%M%S)
     cp "$CONFIG_PATH" "$BACKUP_DIR/telegram.config.$BACKUP_DATE"
     cp "$SCRIPT_PATH" "$BACKUP_DIR/telegram.sh.$BACKUP_DATE"
+    cp "$BASE_DIR/telegram.functions.sh" "$BACKUP_DIR/telegram.functions.sh.$BACKUP_DATE"
     print_log "INFO" "update.sh" "Sauvegarde créée: $BACKUP_DATE"
 fi
 

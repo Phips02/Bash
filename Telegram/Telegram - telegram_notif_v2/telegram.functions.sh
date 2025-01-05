@@ -1,6 +1,40 @@
 #!/bin/bash
 
-# Fonction améliorée pour détecter l'IP source et le type de connexion
+# Charger les identifiants depuis le fichier de configuration
+source /etc/telegram/notif_connexion/telegram.config
+
+# Configuration de l'API Telegram
+API="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}"
+
+# Fonction d'envoi de message Telegram
+function telegram_text_send() {
+    local TEXT="$1"
+    if [[ -z "$TELEGRAM_CHAT_ID" || -z "$TEXT" ]]; then
+        print_log "ERROR" "telegram.functions" "Chat ID ou texte manquant"
+        return 1
+    fi
+
+    local response
+    response=$(curl -s -d "chat_id=${TELEGRAM_CHAT_ID}&text=${TEXT}&parse_mode=markdown" "${API}/sendMessage" 2>/tmp/curl_error.log)
+    local curl_status=$?
+
+    if [ $curl_status -ne 0 ]; then
+        local error=$(cat /tmp/curl_error.log)
+        print_log "ERROR" "telegram.functions" "Échec de l'envoi du message: $error"
+        rm -f /tmp/curl_error.log
+        return 1
+    fi
+
+    if ! echo "$response" | jq -e '.ok' >/dev/null 2>&1; then
+        print_log "ERROR" "telegram.functions" "Réponse API invalide: $response"
+        return 1
+    fi
+
+    rm -f /tmp/curl_error.log
+    return 0
+}
+
+# Fonction améliorée pour détecter l'IP source
 get_source_ip() {
     # Pour les connexions SSH directes
     if [ -n "$SSH_CONNECTION" ]; then

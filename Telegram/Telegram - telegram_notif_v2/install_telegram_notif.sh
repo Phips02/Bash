@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="4.4"
+TELEGRAM_VERSION="4.5"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -171,15 +171,29 @@ if [ $? -ne 0 ]; then
 fi
 
 # Configuration des permissions
-chmod 750 "${BASE_DIR}/telegram.sh"
-chmod 640 "${BASE_DIR}/telegram.functions.sh"
+print_log "INFO" "install.sh" "Configuration des permissions..."
+
+# Permissions des répertoires
+chmod 755 "$BASE_DIR"           # rwxr-xr-x - Permet l'accès au dossier
+chmod 750 "$CONFIG_DIR"         # rwxr-x--- - Restreint l'accès à la config au groupe
+
+# Permissions des fichiers
+chmod 640 "$CONFIG_DIR/telegram.config"  # rw-r----- - Lecture groupe uniquement
+chmod 755 "$BASE_DIR/telegram.sh"        # rwxr-xr-x - Exécutable par tous
+chmod 644 "$BASE_DIR/telegram.functions.sh"  # rw-r--r-- - Lecture pour tous
+
+# Propriétaire et groupe
+chown root:telegramnotif "$CONFIG_DIR"
+chown root:telegramnotif "$CONFIG_DIR/telegram.config"
+chown root:telegramnotif "$BASE_DIR/telegram.sh"
+chown root:telegramnotif "$BASE_DIR/telegram.functions.sh"
 
 # Création du fichier de configuration
 print_log "INFO" "install.sh" "Création du fichier de configuration..."
 cat > "$CONFIG_DIR/telegram.config" << EOF
 ###############################################################################
 # Configuration Telegram pour les notifications de connexion
-# Version 4.4
+# Version 4.5
 ###############################################################################
 
 # Configuration du bot
@@ -218,11 +232,13 @@ chmod 750 "$CONFIG_DIR"         # rwxr-x--- - Restreint l'accès à la config au
 # Permissions des fichiers
 chmod 640 "$CONFIG_DIR/telegram.config"  # rw-r----- - Lecture groupe uniquement
 chmod 755 "$BASE_DIR/telegram.sh"        # rwxr-xr-x - Exécutable par tous
+chmod 644 "$BASE_DIR/telegram.functions.sh"  # rw-r--r-- - Lecture pour tous
 
 # Propriétaire et groupe
 chown root:telegramnotif "$CONFIG_DIR"
 chown root:telegramnotif "$CONFIG_DIR/telegram.config"
 chown root:telegramnotif "$BASE_DIR/telegram.sh"
+chown root:telegramnotif "$BASE_DIR/telegram.functions.sh"
 
 # Configuration pour les nouveaux utilisateurs
 print_log "INFO" "install.sh" "Configuration pour les nouveaux utilisateurs..."

@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="4.4"
+TELEGRAM_VERSION="4.5"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -103,40 +103,12 @@ done
 # Configuration de l'API Telegram
 API="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}"
 
-# Fonction d'envoi de message Telegram
-function telegram_text_send() {
-    local TEXT="$1"
-    print_log "INFO" "telegram.sh" "Envoi du message Telegram..."
-    
-    if [[ -z "$TELEGRAM_CHAT_ID" || -z "$TEXT" ]]; then
-        print_log "ERROR" "telegram.sh" "Chat ID ou texte manquant"
-        return 1
-    fi
-
-    local response
-    response=$(curl -s -d "chat_id=${TELEGRAM_CHAT_ID}&text=${TEXT}&parse_mode=markdown" "${API}/sendMessage" 2>/tmp/curl_error.log)
-    local curl_status=$?
-
-    if [ $curl_status -ne 0 ]; then
-        local error=$(cat /tmp/curl_error.log)
-        print_log "ERROR" "telegram.sh" "Échec de l'envoi du message: $error"
-        rm -f /tmp/curl_error.log
-        return 1
-    fi
-
-    if ! echo "$response" | jq -e '.ok' >/dev/null 2>&1; then
-        print_log "ERROR" "telegram.sh" "Réponse API invalide: $response"
-        return 1
-    fi
-
-    rm -f /tmp/curl_error.log
-    return 0
-}
-
-# Charger les fonctions
-if [ -f "$BASE_DIR/telegram.functions.sh" ]; then
-    source "$BASE_DIR/telegram.functions.sh"
+# Charger les fonctions communes
+if [ ! -f "$BASE_DIR/telegram.functions.sh" ]; then
+    print_log "ERROR" "telegram.sh" "Fichier de fonctions introuvable: $BASE_DIR/telegram.functions.sh"
+    exit 1
 fi
+source "$BASE_DIR/telegram.functions.sh"
 
 # Détection du type de connexion
 get_connection_type() {
