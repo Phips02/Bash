@@ -106,6 +106,9 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Mise à jour des configurations système
+print_log "INFO" "update.sh" "Mise à jour des configurations système..."
+
 # Configuration PAM
 PAM_LINE='PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && $SCRIPT_PATH""'
 
@@ -125,57 +128,6 @@ printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$SU_PAM_FILE"
 
 # Suppression de la configuration bash.bashrc qui n'est plus nécessaire
 sed -i '/Notification Telegram/,/^fi$/d' /etc/bash.bashrc
-
-# Mise à jour des configurations système
-print_log "INFO" "update.sh" "Mise à jour des configurations système..."
-
-# 1. Configuration PAM
-print_log "INFO" "update.sh" "Configuration PAM..."
-TMP_PAM=$(mktemp)
-
-# Nettoyer et mettre à jour PAM
-awk '
-    BEGIN { prev_empty = 0 }
-    /^[[:space:]]*#.*[Tt]elegram/ { next }
-    /telegram/ { next }
-    /^[[:space:]]*#$/ { next }
-    {
-        if ($0 ~ /^[[:space:]]*$/) {
-            if (!prev_empty) { prev_empty = 1 }
-        } else {
-            printf "%s\n", $0
-            prev_empty = 0
-        }
-    }
-' "$PAM_FILE" > "$TMP_PAM"
-
-printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$TMP_PAM"
-mv "$TMP_PAM" "$PAM_FILE"
-
-# 2. Configuration bash.bashrc
-print_log "INFO" "update.sh" "Configuration bash.bashrc..."
-TMP_BASHRC=$(mktemp)
-
-# Nettoyer et mettre à jour bash.bashrc
-awk '
-    BEGIN { empty_lines = 0 }
-    /^# Notification Telegram/ { skip = 1; next }
-    /^if.*telegram/ { skip = 1; next }
-    /telegram.sh/ { skip = 1; next }
-    skip == 1 && /^fi/ { skip = 0; next }
-    !skip {
-        if ($0 ~ /^[[:space:]]*$/) {
-            empty_lines++
-            if (empty_lines <= 1) print
-        } else {
-            empty_lines = 0
-            print
-        }
-    }
-' /etc/bash.bashrc > "$TMP_BASHRC"
-
-# Suppression des références au wrapper
-rm -f "$BASE_DIR/telegram_wrapper.sh"
 
 # Configuration des permissions
 chmod 755 "$BASE_DIR"           # rwxr-xr-x - Accès pour tous
