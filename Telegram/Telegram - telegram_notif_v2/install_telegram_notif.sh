@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.25"
+TELEGRAM_VERSION="3.26"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -272,4 +272,5 @@ if [ $? -ne 0 ]; then
     log_message "WARNING" "Impossible de supprimer le script d'installation"
 fi
 
+wait # Attendre la fin du test
 exit 0
