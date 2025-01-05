@@ -293,4 +293,6 @@ fi
 
 # Message final
 print_log "SUCCESS" "install.sh" "Installation terminée avec succès!"
+echo "" # Ajout d'une ligne vide pour un retour propre
+
 exit 0

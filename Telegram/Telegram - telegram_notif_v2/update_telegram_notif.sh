@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.39"
+TELEGRAM_VERSION="3.40"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -110,35 +110,69 @@ fi
 PAM_FILE="/etc/pam.d/su"
 PAM_LINE='PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && $SCRIPT_PATH""'
 
-print_log "INFO" "update.sh" "Configuration PAM..."
+# Mise à jour des configurations système
+print_log "INFO" "update.sh" "Mise à jour des configurations système..."
 
-# Créer un fichier temporaire
+# 1. Configuration PAM
+print_log "INFO" "update.sh" "Configuration PAM..."
 TMP_PAM=$(mktemp)
 
-# 1. Copier le contenu existant en préservant la structure mais en filtrant Telegram
+# Nettoyer et mettre à jour PAM
 awk '
     BEGIN { prev_empty = 0 }
-    /^[[:space:]]*#.*[Tt]elegram/ { next }      # Ignorer les commentaires Telegram
-    /telegram/ { next }                          # Ignorer les lignes contenant telegram
-    /^[[:space:]]*#$/ { next }                  # Ignorer les lignes avec juste un #
+    /^[[:space:]]*#.*[Tt]elegram/ { next }
+    /telegram/ { next }
+    /^[[:space:]]*#$/ { next }
     {
-        if ($0 ~ /^[[:space:]]*$/) {            # Ligne vide
-            if (!prev_empty) {
-                prev_empty = 1
-            }
-        } else {                                 # Ligne non vide
+        if ($0 ~ /^[[:space:]]*$/) {
+            if (!prev_empty) { prev_empty = 1 }
+        } else {
             printf "%s\n", $0
             prev_empty = 0
         }
     }
 ' "$PAM_FILE" > "$TMP_PAM"
 
-# 2. Ajouter la nouvelle configuration
 printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$TMP_PAM"
-
-# 3. Installer la nouvelle configuration
 mv "$TMP_PAM" "$PAM_FILE"
-print_log "SUCCESS" "update.sh" "Configuration PAM mise à jour"
+
+# 2. Configuration bash.bashrc
+print_log "INFO" "update.sh" "Configuration bash.bashrc..."
+TMP_BASHRC=$(mktemp)
+
+# Nettoyer et mettre à jour bash.bashrc
+awk '
+    BEGIN { empty_lines = 0 }
+    /^# Notification Telegram/ { skip = 1; next }
+    /^if.*telegram/ { skip = 1; next }
+    /telegram.sh/ { skip = 1; next }
+    skip == 1 && /^fi/ { skip = 0; next }
+    !skip {
+        if ($0 ~ /^[[:space:]]*$/) {
+            empty_lines++
+            if (empty_lines <= 1) print
+        } else {
+            empty_lines = 0
+            print
+        }
+    }
+' /etc/bash.bashrc > "$TMP_BASHRC"
+
+# Ajouter la nouvelle configuration
+echo '
+# Notification Telegram pour connexions SSH et su
+if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
+    if [ -r '"$CONFIG_DIR"'/telegram.config ]; then
+        source '"$CONFIG_DIR"'/telegram.config 2>/dev/null
+        $SCRIPT_PATH &>/dev/null || true
+    fi
+fi' >> "$TMP_BASHRC"
+
+mv "$TMP_BASHRC" /etc/bash.bashrc
+chmod 644 /etc/bash.bashrc
+chown root:root /etc/bash.bashrc
+
+print_log "SUCCESS" "update.sh" "Configurations système mises à jour"
 
 # Nettoyage
 print_log "INFO" "update.sh" "Nettoyage des anciennes sauvegardes..."
@@ -176,52 +210,6 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 print_log "SUCCESS" "update.sh" "Permissions configurées"
-
-# Mise à jour de bash.bashrc
-print_log "INFO" "update.sh" "Mise à jour de bash.bashrc..."
-
-# Créer un fichier temporaire
-TMP_BASHRC=$(mktemp)
-
-# Sauvegarder les permissions actuelles
-BASHRC_PERMS=$(stat -c %a /etc/bash.bashrc)
-
-# Nettoyer les anciennes configurations
-awk '
-    BEGIN { empty_lines = 0 }
-    /^# Notification Telegram/ { skip = 1; next }
-    /^if.*telegram/ { skip = 1; next }
-    /telegram.sh/ { skip = 1; next }
-    skip == 1 && /^fi/ { skip = 0; next }
-    !skip {
-        if ($0 ~ /^[[:space:]]*$/) {
-            empty_lines++
-            if (empty_lines <= 1) print
-        } else {
-            empty_lines = 0
-            print
-        }
-    }
-' /etc/bash.bashrc > "$TMP_BASHRC"
-
-# Ajouter la nouvelle configuration
-echo '
-# Notification Telegram pour connexions SSH et su
-if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
-    if [ -r '"$CONFIG_DIR"'/telegram.config ]; then
-        source '"$CONFIG_DIR"'/telegram.config 2>/dev/null
-        $SCRIPT_PATH &>/dev/null || true
-    fi
-fi' >> "$TMP_BASHRC"
-
-# Installer la nouvelle configuration
-mv "$TMP_BASHRC" /etc/bash.bashrc
-
-# Restaurer les permissions correctes
-chmod 644 /etc/bash.bashrc
-chown root:root /etc/bash.bashrc
-
-print_log "SUCCESS" "update.sh" "Configuration bash.bashrc mise à jour"
 
 # Auto-destruction du script
 print_log "INFO" "update.sh" "Auto-destruction du script..."
