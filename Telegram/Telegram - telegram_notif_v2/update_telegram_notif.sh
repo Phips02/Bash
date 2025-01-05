@@ -186,45 +186,26 @@ awk '
     }
 ' /etc/bash.bashrc > "$TMP_BASHRC"
 
-# Installation du wrapper script
-print_log "INFO" "update.sh" "Installation du wrapper script..."
-cat > "$BASE_DIR/telegram_wrapper.sh" << 'EOF'
-#!/bin/bash
-source /etc/telegram/notif_connexion/telegram.config 2>/dev/null
-/usr/local/bin/telegram/notif_connexion/telegram.sh "$@"
-EOF
-
-chmod 4755 "$BASE_DIR/telegram_wrapper.sh"  # setuid root
-chown root:root "$BASE_DIR/telegram_wrapper.sh"
-
-# Modification de bash.bashrc
-echo '
-# Notification Telegram pour connexions SSH et su
-if [ -n "$SSH_CLIENT" ] || [ -n "$SSH_TTY" ] || [ -n "$SSH_CONNECTION" ]; then
-    '"$BASE_DIR"'/telegram_wrapper.sh &>/dev/null || true
-fi' >> "$TMP_BASHRC"
-
-mv "$TMP_BASHRC" /etc/bash.bashrc
-chmod 644 /etc/bash.bashrc
-chown root:root /etc/bash.bashrc
-
-print_log "SUCCESS" "update.sh" "Configurations système mises à jour"
+# Suppression des références au wrapper
+rm -f "$BASE_DIR/telegram_wrapper.sh"
 
 # Configuration des permissions
-print_log "INFO" "update.sh" "Configuration des permissions..."
+chmod 755 "$BASE_DIR"           # rwxr-xr-x - Accès pour tous
+chmod 755 "$CONFIG_DIR"         # rwxr-xr-x - Accès pour tous
+chmod 755 "$BACKUP_DIR"         # rwxr-xr-x - Accès pour tous
+chmod 644 "$CONFIG_PATH"        # rw-r--r-- - Lecture pour tous
+chmod 755 "$SCRIPT_PATH"        # rwxr-xr-x - Exécution pour tous
+chown -R root:root "$BASE_DIR" "$CONFIG_DIR"
 
-# Permissions des répertoires
-chmod 750 "$BASE_DIR"           # rwxr-x--- - Accès restreint au groupe
-chmod 750 "$CONFIG_DIR"         # rwxr-x--- - Accès restreint au groupe
-chmod 750 "$BACKUP_DIR"         # rwxr-x--- - Accès restreint au groupe
+# Configuration bash.bashrc
+echo '
+# Notification Telegram pour connexions SSH et su
+if [ -n "$SSH_CONNECTION" ]; then
+    '"$SCRIPT_PATH"' &>/dev/null || true
+fi' >> "$TMP_BASHRC"
 
-# Permissions des fichiers
-chmod 640 "$CONFIG_PATH"        # rw-r----- - Lecture groupe uniquement
-chmod 750 "$SCRIPT_PATH"        # rwxr-x--- - Exécution groupe uniquement
-
-# Propriétaire et groupe
-chown -R root:telegramnotif "$BASE_DIR" "$CONFIG_DIR"
-chown root:telegramnotif "$CONFIG_PATH"  # Config accessible par le groupe telegramnotif
+# Configuration PAM pour su uniquement
+PAM_LINE="session optional pam_exec.so seteuid $SCRIPT_PATH"
 
 # Réappliquer l'attribut immutable
 chattr +i "$CONFIG_PATH"

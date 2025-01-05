@@ -205,69 +205,23 @@ fi
 print_log "INFO" "install.sh" "Configuration des permissions..."
 
 # Permissions des répertoires
-chmod 750 "$BASE_DIR"           # rwxr-x--- - Accès restreint au groupe
-chmod 750 "$CONFIG_DIR"         # rwxr-x--- - Accès restreint au groupe
-
-# Permissions des fichiers
-chmod 600 "$CONFIG_DIR/telegram.config"  # rw------- - Lecture/écriture root uniquement
-chmod 750 "$BASE_DIR/telegram.sh"        # rwxr-x--- - Exécution groupe uniquement
+chmod 755 "$BASE_DIR"           # rwxr-xr-x - Accès pour tous
+chmod 755 "$CONFIG_DIR"         # rwxr-xr-x - Accès pour tous
+chmod 644 "$CONFIG_PATH"        # rw-r--r-- - Lecture pour tous
+chmod 755 "$SCRIPT_PATH"        # rwxr-xr-x - Exécution pour tous
 
 # Propriétaire et groupe
-chown -R root:telegramnotif "$BASE_DIR" "$CONFIG_DIR"
-chown root:root "$CONFIG_DIR/telegram.config"  # Config accessible uniquement par root
+chown -R root:root "$BASE_DIR" "$CONFIG_DIR"
 
-# Configuration pour les nouveaux utilisateurs
-print_log "INFO" "install.sh" "Configuration pour les nouveaux utilisateurs..."
-
-# 1. Configuration de adduser.conf
-if [ -f "/etc/adduser.conf" ]; then
-    # Backup du fichier original
-    cp /etc/adduser.conf /etc/adduser.conf.bak
-    
-    # Ajouter telegramnotif aux groupes par défaut
-    if ! grep -q "^EXTRA_GROUPS=" /etc/adduser.conf; then
-        echo 'EXTRA_GROUPS="telegramnotif"' >> /etc/adduser.conf
-        echo 'ADD_EXTRA_GROUPS=1' >> /etc/adduser.conf
-    else
-        sed -i '/^EXTRA_GROUPS=/ s/"$/ telegramnotif"/' /etc/adduser.conf
-        sed -i 's/^ADD_EXTRA_GROUPS=.*/ADD_EXTRA_GROUPS=1/' /etc/adduser.conf
-    fi
-fi
-
-# 2. Ajouter tous les utilisateurs existants au groupe
-for user in $(awk -F: '$3 >= 1000 && $3 != 65534 {print $1}' /etc/passwd); do
-    if ! groups "$user" | grep -q "telegramnotif"; then
-        usermod -a -G telegramnotif "$user"
-        print_log "INFO" "install.sh" "Utilisateur $user ajouté au groupe telegramnotif"
-    fi
-done
-
-# Configuration système
-print_log "INFO" "install.sh" "Configuration du système..."
-
-# Supprimer l'ancienne configuration de bash.bashrc
-if grep -q "\$SCRIPT_PATH" /etc/bash.bashrc; then
-    sed -i '/Notification Telegram/,/^fi$/d' /etc/bash.bashrc
-fi
-
-# Ajouter la nouvelle configuration avec le wrapper
+# Configuration bash.bashrc
 echo '
 # Notification Telegram pour connexions SSH et su
-if [ -n "$SSH_CLIENT" ] || [ -n "$SSH_TTY" ] || [ -n "$SSH_CONNECTION" ]; then
-    '"$BASE_DIR"'/telegram_wrapper.sh &>/dev/null || true
+if [ -n "$SSH_CONNECTION" ]; then
+    '"$SCRIPT_PATH"' &>/dev/null || true
 fi' >> /etc/bash.bashrc
 
 # Configuration PAM
-PAM_FILE="/etc/pam.d/su"
-PAM_LINE="session optional pam_exec.so seteuid $BASE_DIR/telegram_wrapper.sh"
-
-print_log "INFO" "install.sh" "Configuration PAM..."
-
-if grep -q "session.*telegram" "$PAM_FILE"; then
-    sed -i '/Notification Telegram/,/telegram/d' "$PAM_FILE"
-fi
-
-printf "# Notification Telegram pour su/sudo uniquement\n%s\n" "$PAM_LINE" >> "$PAM_FILE"
+PAM_LINE="session optional pam_exec.so seteuid $SCRIPT_PATH"
 
 # Test de l'installation
 print_log "INFO" "install.sh" "Test de l'installation..."
@@ -297,17 +251,6 @@ cat > /etc/logrotate.d/telegram_notif << EOF
     notifempty
 }
 EOF
-
-# Installation du wrapper script
-print_log "INFO" "install.sh" "Installation du wrapper script..."
-cat > "$BASE_DIR/telegram_wrapper.sh" << 'EOF'
-#!/bin/bash
-source /etc/telegram/notif_connexion/telegram.config 2>/dev/null
-/usr/local/bin/telegram/notif_connexion/telegram.sh "$@"
-EOF
-
-chmod 4755 "$BASE_DIR/telegram_wrapper.sh"
-chown root:root "$BASE_DIR/telegram_wrapper.sh"
 
 # Message final
 print_log "SUCCESS" "install.sh" "Installation terminée avec succès!"

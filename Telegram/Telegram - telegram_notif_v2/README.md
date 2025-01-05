@@ -88,6 +88,5 @@ groupdel telegramnotif
 ## Fichiers du système
 - `telegram.sh` : Script principal
 - `telegram.config` : Configuration du système
-- `telegram_wrapper.sh` : Script wrapper pour l'exécution sécurisée
 - `install_telegram_notif.sh` : Script d'installation
 - `update_telegram_notif.sh` : Script de mise à jour 
