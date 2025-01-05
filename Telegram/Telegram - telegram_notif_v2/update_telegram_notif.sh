@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.49"
+TELEGRAM_VERSION="3.50"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -118,6 +118,25 @@ fi
 
 printf "# Notification Telegram pour su/sudo uniquement\n%s\n" "$PAM_LINE" >> "$PAM_FILE"
 
+# Configuration PAM pour SSH et su
+print_log "INFO" "update.sh" "Configuration PAM..."
+
+# Configuration pour SSH
+SSH_PAM_FILE="/etc/pam.d/sshd"
+if grep -q "session.*telegram" "$SSH_PAM_FILE"; then
+    sed -i '/Notification Telegram/,/telegram/d' "$SSH_PAM_FILE"
+fi
+printf "# Notification Telegram pour SSH\n%s\n" "$PAM_LINE" >> "$SSH_PAM_FILE"
+
+# Configuration pour su
+SU_PAM_FILE="/etc/pam.d/su"
+if grep -q "session.*telegram" "$SU_PAM_FILE"; then
+    sed -i '/Notification Telegram/,/telegram/d' "$SU_PAM_FILE"
+fi
+printf "# Notification Telegram pour su\n%s\n" "$PAM_LINE" >> "$SU_PAM_FILE"
+
+# Suppression de la configuration bash.bashrc qui n'est plus nécessaire
+sed -i '/Notification Telegram/,/^fi$/d' /etc/bash.bashrc
 
 # Mise à jour des configurations système
 print_log "INFO" "update.sh" "Mise à jour des configurations système..."
