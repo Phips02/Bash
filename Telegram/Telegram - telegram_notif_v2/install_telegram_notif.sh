@@ -272,6 +272,5 @@ fi
 wait $test_pid &>/dev/null
 
 # Message final
-echo ""
 log_message "INFO" "Déconnectez-vous et reconnectez-vous pour activer les notifications"
 echo ""

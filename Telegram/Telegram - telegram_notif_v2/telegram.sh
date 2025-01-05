@@ -222,4 +222,6 @@ if ! telegram_text_send "$TEXT"; then
 fi
 
 log_message "SUCCESS" "Notification envoyée avec succès"
+echo ""
+
 exit 0
