@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.35"
+TELEGRAM_VERSION="3.36"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -108,7 +108,17 @@ print_log "SUCCESS" "update.sh" "Configuration PAM mise à jour"
 
 # Nettoyage
 print_log "INFO" "update.sh" "Nettoyage des anciennes sauvegardes..."
-cd "$BACKUP_DIR" && ls -t telegram.* | tail -n +11 | xargs -r rm
+
+# Garder seulement les 5 dernières sauvegardes de chaque type
+if [ -d "$BACKUP_DIR" ]; then
+    # Nettoyage des fichiers de configuration
+    cd "$BACKUP_DIR" && ls -t telegram.config.* 2>/dev/null | tail -n +6 | xargs -r rm
+    
+    # Nettoyage des scripts
+    cd "$BACKUP_DIR" && ls -t telegram.sh.* 2>/dev/null | tail -n +6 | xargs -r rm
+    
+    print_log "INFO" "update.sh" "Conservation des 5 dernières sauvegardes uniquement"
+fi
 
 # Configuration des permissions
 print_log "INFO" "update.sh" "Configuration des permissions..."
