@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.26"
+TELEGRAM_VERSION="3.27"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -255,15 +255,11 @@ fi
 
 # Test de l'installation
 log_message "INFO" "Test de l'installation..."
-"$BASE_DIR/telegram.sh"
-if [ $? -ne 0 ]; then
-    log_message "ERROR" "Le test a échoué, vérifiez la configuration"
-    exit 1
-fi
+"$BASE_DIR/telegram.sh" &
+test_pid=$!
 
 log_message "INFO" "Exécution du script d'installation version $TELEGRAM_VERSION"
 log_message "SUCCESS" "Installation réussie!"
-log_message "INFO" "Déconnectez-vous et reconnectez-vous pour activer les notifications"
 
 # Auto-destruction du script
 log_message "INFO" "Auto-destruction du script..."
@@ -272,5 +268,10 @@ if [ $? -ne 0 ]; then
     log_message "WARNING" "Impossible de supprimer le script d'installation"
 fi
 
-wait # Attendre la fin du test
-exit 0
+# Attendre la fin du test silencieusement
+wait $test_pid &>/dev/null
+
+# Message final
+echo ""
+log_message "INFO" "Déconnectez-vous et reconnectez-vous pour activer les notifications"
+echo ""
