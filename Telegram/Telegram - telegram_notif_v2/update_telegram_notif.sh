@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="4.14"
+TELEGRAM_VERSION="4.15"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -210,28 +210,33 @@ fi
 
 # 2. Configuration bash.bashrc
 print_log "INFO" "update.sh" "Configuration bash.bashrc..."
-TMP_BASHRC=$(mktemp)
 
-# Nettoyer et mettre à jour bash.bashrc
-awk '
-    BEGIN { empty_lines = 0 }
-    /^# Notification Telegram/ { skip = 1; next }
-    /^if.*telegram/ { skip = 1; next }
-    /telegram.sh/ { skip = 1; next }
-    skip == 1 && /^fi/ { skip = 0; next }
-    !skip {
-        if ($0 ~ /^[[:space:]]*$/) {
-            empty_lines++
-            if (empty_lines <= 1) print
-        } else {
-            empty_lines = 0
-            print
+# Vérifier si la configuration bash.bashrc existe déjà
+if grep -q "source.*telegram\.config.*telegram\.sh" /etc/bash.bashrc; then
+    print_log "INFO" "update.sh" "Configuration bash.bashrc déjà présente et correcte"
+else
+    TMP_BASHRC=$(mktemp)
+
+    # Nettoyer et mettre à jour bash.bashrc
+    awk '
+        BEGIN { empty_lines = 0 }
+        /^# Notification Telegram/ { skip = 1; next }
+        /^if.*telegram/ { skip = 1; next }
+        /telegram.sh/ { skip = 1; next }
+        skip == 1 && /^fi/ { skip = 0; next }
+        !skip {
+            if ($0 ~ /^[[:space:]]*$/) {
+                empty_lines++
+                if (empty_lines <= 1) print
+            } else {
+                empty_lines = 0
+                print
+            }
         }
-    }
-' /etc/bash.bashrc > "$TMP_BASHRC"
+    ' /etc/bash.bashrc > "$TMP_BASHRC"
 
-# Ajouter la nouvelle configuration
-echo '
+    # Ajouter la nouvelle configuration
+    echo '
 # Notification Telegram pour connexions SSH et su
 if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
     if [ -r '"$CONFIG_DIR"'/telegram.config ]; then
@@ -240,24 +245,23 @@ if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
     fi
 fi' >> "$TMP_BASHRC"
 
-mv "$TMP_BASHRC" /etc/bash.bashrc
-chmod 644 /etc/bash.bashrc
-chown root:root /etc/bash.bashrc
+    mv "$TMP_BASHRC" /etc/bash.bashrc
+    chmod 644 /etc/bash.bashrc
+    chown root:root /etc/bash.bashrc
 
-# Vérifier si la configuration bash.bashrc existe déjà et est correcte
-if grep -q "source.*telegram\.config.*telegram\.sh" /etc/bash.bashrc; then
-    print_log "INFO" "update.sh" "Configuration bash.bashrc déjà présente et correcte"
-else
-    print_log "ERROR" "update.sh" "Échec de la mise à jour bash.bashrc"
-    print_log "ERROR" "update.sh" "Application manuelle : ajouter au fichier /etc/bash.bashrc :"
-    print_log "INFO" "update.sh" '# Notification Telegram pour connexions SSH et su
-+if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
-+    if [ -r '"$CONFIG_DIR"'/telegram.config ]; then
-+        source '"$CONFIG_DIR"'/telegram.config 2>/dev/null
-+        $SCRIPT_PATH &>/dev/null || true
-+    fi
-+fi'
-    exit 1
+    # Vérifier si la mise à jour a réussi
+    if ! grep -q "source.*telegram\.config.*telegram\.sh" /etc/bash.bashrc; then
+        print_log "ERROR" "update.sh" "Échec de la mise à jour bash.bashrc"
+        print_log "ERROR" "update.sh" "Application manuelle : ajouter au fichier /etc/bash.bashrc :"
+        print_log "INFO" "update.sh" '# Notification Telegram pour connexions SSH et su
+if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
+    if [ -r '"$CONFIG_DIR"'/telegram.config ]; then
+        source '"$CONFIG_DIR"'/telegram.config 2>/dev/null
+        $SCRIPT_PATH &>/dev/null || true
+    fi
+fi'
+        exit 1
+    fi
 fi
 
 print_log "SUCCESS" "update.sh" "Configurations système mises à jour"
