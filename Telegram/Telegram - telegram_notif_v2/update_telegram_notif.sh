@@ -12,7 +12,7 @@ function log_message() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.9"
+TELEGRAM_VERSION="3.10"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -72,18 +72,12 @@ log_message "INFO" "Configuration PAM..."
 # Créer un fichier temporaire
 TMP_PAM=$(mktemp)
 
-# 1. Copier le contenu de base (sans les lignes telegram et les lignes vides à la fin)
+# 1. Garder uniquement les lignes de base (sans Telegram)
 awk '
-    BEGIN { empty_lines = 0 }
-    /telegram/ { next }
-    /^[[:space:]]*$/ { empty_lines++; next }
-    { 
-        if (empty_lines > 0) {
-            for (i=0; i<empty_lines; i++) print ""
-            empty_lines = 0
-        }
-        print $0 
-    }
+    /^[[:space:]]*#.*[Tt]elegram/ { next }  # Ignorer les commentaires Telegram
+    /telegram/ { next }                      # Ignorer les lignes contenant telegram
+    /^[[:space:]]*$/ { if (!empty) print; empty=1; next }  # Une seule ligne vide
+    { print; empty=0 }
 ' "$PAM_FILE" > "$TMP_PAM"
 
 # 2. Ajouter la nouvelle configuration
