@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.53"
+TELEGRAM_VERSION="3.54"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -222,7 +222,7 @@ chmod 755 "$SCRIPT_PATH"        # rwxr-xr-x - Exécution pour tous
 chown -R root:root "$BASE_DIR" "$CONFIG_DIR"
 
 # Configuration PAM
-PAM_LINE='session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && '$SCRIPT_PATH'"'
+PAM_LINE='PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && $SCRIPT_PATH""'
 
 # Configuration pour SSH
 SSH_PAM_FILE="/etc/pam.d/sshd"

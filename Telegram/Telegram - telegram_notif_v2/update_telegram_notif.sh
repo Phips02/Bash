@@ -107,17 +107,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Configuration PAM
-PAM_FILE="/etc/pam.d/su"
-PAM_LINE='session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && '$SCRIPT_PATH'"'
-
-if grep -q "session.*telegram" "$PAM_FILE"; then
-    sed -i '/Notification Telegram/,/telegram/d' "$PAM_FILE"
-fi
-
-printf "# Notification Telegram pour su/sudo uniquement\n%s\n" "$PAM_LINE" >> "$PAM_FILE"
-
-# Configuration PAM pour SSH
-print_log "INFO" "update.sh" "Configuration PAM..."
+PAM_LINE='PAM_LINE="session optional pam_exec.so seteuid /bin/bash -c "source '$CONFIG_DIR'/telegram.config 2>/dev/null && $SCRIPT_PATH""'
 
 # Configuration pour SSH
 SSH_PAM_FILE="/etc/pam.d/sshd"
@@ -126,7 +116,7 @@ if grep -q "session.*telegram" "$SSH_PAM_FILE"; then
 fi
 printf "# Notification Telegram pour SSH\n%s\n" "$PAM_LINE" >> "$SSH_PAM_FILE"
 
-# Configuration PAM pour su
+# Configuration pour su
 SU_PAM_FILE="/etc/pam.d/su"
 if grep -q "session.*telegram" "$SU_PAM_FILE"; then
     sed -i '/Notification Telegram/,/telegram/d' "$SU_PAM_FILE"
