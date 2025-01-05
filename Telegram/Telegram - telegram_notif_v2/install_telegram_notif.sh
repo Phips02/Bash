@@ -5,7 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="4.5"
+TELEGRAM_VERSION="4.7"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -274,8 +274,10 @@ if ! grep -q "\$SCRIPT_PATH" /etc/bash.bashrc; then
     echo '
 # Notification Telegram pour connexions SSH et su
 if [ -n "$PS1" ] && [ "$TERM" != "unknown" ] && [ -z "$PAM_TYPE" ]; then
-    source '"$CONFIG_DIR"'/telegram.config
-    $SCRIPT_PATH &>/dev/null
+    if [ -r '"$CONFIG_DIR"'/telegram.config ]; then
+        source '"$CONFIG_DIR"'/telegram.config 2>/dev/null
+        $SCRIPT_PATH &>/dev/null || true
+    fi
 fi' >> /etc/bash.bashrc
     chmod 644 /etc/bash.bashrc
     chown root:root /etc/bash.bashrc
