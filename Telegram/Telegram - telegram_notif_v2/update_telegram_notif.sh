@@ -5,20 +5,7 @@
 ###############################################################################
 
 # Version du système
-TELEGRAM_VERSION="3.5"
-
-# Définition des chemins
-BASE_DIR="/usr/local/bin/telegram/notif_connexion"
-CONFIG_DIR="/etc/telegram/notif_connexion"
-BACKUP_DIR="$CONFIG_DIR/backup"
-SCRIPT_PATH="$BASE_DIR/telegram.sh"
-CONFIG_PATH="$CONFIG_DIR/telegram.config"
-
-# Vérification de la version actuelle
-if [ -f "$CONFIG_PATH" ]; then
-    CURRENT_VERSION=$(grep "TELEGRAM_VERSION=" "$CONFIG_PATH" | cut -d'"' -f2)
-    log_message "INFO" "Version actuelle : $CURRENT_VERSION"
-fi
+TELEGRAM_VERSION="3.6"
 
 # Fonction pour le logging avec horodatage et niveau
 function log_message() {
@@ -27,10 +14,25 @@ function log_message() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message"
 }
 
+# Définition des chemins
+BASE_DIR="/usr/local/bin/telegram/notif_connexion"
+CONFIG_DIR="/etc/telegram/notif_connexion"
+BACKUP_DIR="$CONFIG_DIR/backup"
+SCRIPT_PATH="$BASE_DIR/telegram.sh"
+CONFIG_PATH="$CONFIG_DIR/telegram.config"
+
+log_message "INFO" "Exécution du script de mise à jour version $TELEGRAM_VERSION"
+
 # Vérification des droits root
 if [[ $EUID -ne 0 ]]; then
     log_message "ERROR" "Ce script doit être exécuté en tant que root"
     exit 1
+fi
+
+# Vérification de la version actuelle
+if [ -f "$CONFIG_PATH" ]; then
+    CURRENT_VERSION=$(grep "TELEGRAM_VERSION=" "$CONFIG_PATH" | cut -d'"' -f2)
+    log_message "INFO" "Version actuelle : $CURRENT_VERSION"
 fi
 
 # Création des répertoires nécessaires
@@ -45,8 +47,6 @@ if [ -f "$CONFIG_PATH" ]; then
 fi
 
 # Mise à jour des fichiers
-log_message "INFO" "Exécution du script de mise à jour version $TELEGRAM_VERSION"
-
 log_message "INFO" "Téléchargement des nouveaux fichiers..."
 REPO_URL="https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2"
 
