@@ -1,5 +1,5 @@
 # Système de notification Telegram pour connexions SSH et su
-Version 3.11
+Version 3.12
 
 ## À propos
 Ce système permet de recevoir des notifications Telegram lors des connexions SSH et des utilisations de la commande su.
@@ -34,10 +34,13 @@ chmod +x install_telegram_notif.sh
 
 Pour mettre à jour le système de notification, exécutez les commandes suivantes en tant que root :
 
+1. Se connecter en root :
 ```bash
-# Se connecter en root d'abord
 su -
-# Puis exécuter la mise à jour
+```
+
+2. Copier et exécuter la commande de mise à jour :
+```bash
 cd /tmp && wget -qO update_telegram_notif.sh --no-cache https://raw.githubusercontent.com/Phips02/Bash/main/Telegram/Telegram%20-%20telegram_notif_v2/update_telegram_notif.sh && chmod +x update_telegram_notif.sh && ./update_telegram_notif.sh
 ```
 
