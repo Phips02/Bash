@@ -227,4 +227,6 @@ if ! telegram_text_send "$TEXT"; then
     exit 1
 fi
 print_log "SUCCESS" "telegram.sh" "Notification envoyée avec succès"
+echo "" # Ajout d'une ligne vide pour un retour propre
+
 exit 0
