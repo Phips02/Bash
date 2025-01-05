@@ -13,7 +13,7 @@ function print_log() {
 }
 
 # Version du système
-TELEGRAM_VERSION="3.48"
+TELEGRAM_VERSION="3.49"
 
 # Définition des chemins
 BASE_DIR="/usr/local/bin/telegram/notif_connexion"
@@ -181,7 +181,7 @@ chown root:root "$BASE_DIR/telegram_wrapper.sh"
 # Modification de bash.bashrc
 echo '
 # Notification Telegram pour connexions SSH et su
-if [ -n "$SSH_CONNECTION" ] && [ -z "$PAM_TYPE" ]; then
+if [ -n "$SSH_CLIENT" ] || [ -n "$SSH_TTY" ] || [ -n "$SSH_CONNECTION" ]; then
     '"$BASE_DIR"'/telegram_wrapper.sh &>/dev/null || true
 fi' >> "$TMP_BASHRC"
 
