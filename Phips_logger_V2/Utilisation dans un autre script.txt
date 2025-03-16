@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Importer le logger
+LOGGER_PATH="/usr/local/bin/phips_logger/universal_logger.sh"
+if [ -f "$LOGGER_PATH" ]; then
+    source "$LOGGER_PATH"
+else
+    echo "Logger non trouvé: $LOGGER_PATH"
+    exit 1
+fi
+
+# Utilisations du logger
+print_log "INFO" "mon_script" "Démarrage du script"
+print_log "DEBUG" "mon_script" "Variable: $var"
+print_log "WARNING" "mon_script" "Attention: quota presque atteint"
+print_log "ERROR" "mon_script" "Erreur lors de l'exécution"
+print_log "CRITICAL" "mon_script" "Erreur critique, arrêt du programme"
