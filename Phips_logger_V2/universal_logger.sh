@@ -7,9 +7,6 @@
 
 # Chemin du fichier de configuration
 DEFAULT_CONFIG_FILE="/etc/phips_logger/logger_config.cfg"
-DEFAULT_LOG_DIR="/var/log/phips_logger"
-
-
 
 # Charger la configuration si spécifiée
 CONFIG_FILE=${LOGGER_CONFIG_FILE:-$DEFAULT_CONFIG_FILE}
@@ -21,9 +18,8 @@ else
 fi
 
 # Définir les paramètres avec des valeurs par défaut si non définies
-# Toutes les valeurs par défaut sont maintenant définies ici et non en double
-LOG_DIR="${LOG_DIR:-$DEFAULT_LOG_DIR}"
-LOG_PREFIX="${LOG_PREFIX:-phips_logger}"
+LOG_DIR="${LOG_DIR:-/var/log/phips_logger}"
+LOG_PREFIX="${LOG_PREFIX:-phips}"
 LOG_LEVEL="${LOG_LEVEL:-INFO}"
 USE_SYSLOG="${USE_SYSLOG:-false}"
 ENABLE_NOTIFICATIONS="${ENABLE_NOTIFICATIONS:-false}"
@@ -31,6 +27,7 @@ NOTIFICATION_LEVEL="${NOTIFICATION_LEVEL:-WARNING}"
 TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
 TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-}"
 HOSTNAME="${HOSTNAME:-$(hostname)}"
+LOG_FILENAME="${LOG_FILENAME:-}"  # Nouveau: permet de spécifier un nom de fichier personnalisé
 
 # Définition des niveaux de log
 declare -A LOG_LEVELS=( 
@@ -58,8 +55,23 @@ validate_log_level() {
 
 # Fonction pour obtenir le nom du fichier de log du jour
 get_log_file() {
-    local prefix="${LOG_PREFIX}"
-    echo "${LOG_DIR}/${prefix}_$(date +%Y-%m-%d).log"
+    local module="${1:-}"
+    local log_dir="${LOG_DIR}"
+    
+    # Si un nom de fichier personnalisé est défini, l'utiliser
+    if [[ -n "${LOG_FILENAME}" ]]; then
+        echo "${log_dir}/${LOG_FILENAME}_$(date +%Y-%m-%d).log"
+        return
+    fi
+    
+    # Si un module est fourni, l'utiliser comme nom de fichier
+    if [[ -n "${module}" && "${module}" != "logger" && "${module}" != "logger_test" ]]; then
+        echo "${log_dir}/${module}_$(date +%Y-%m-%d).log"
+        return
+    fi
+    
+    # Sinon, utiliser le préfixe par défaut
+    echo "${log_dir}/${LOG_PREFIX}_$(date +%Y-%m-%d).log"
 }
 
 # Fonction pour initialiser le fichier de log
@@ -188,7 +200,7 @@ print_log() {
     fi
     
     # Obtenir le fichier de log et l'initialiser
-    local log_file=$(get_log_file)
+    local log_file=$(get_log_file "$module")
     init_log_file "$log_file"
     
     # Essayer d'écrire dans le fichier
@@ -197,15 +209,15 @@ print_log() {
     fi
     
     # Si l'écriture échoue, utiliser le fallback
-    echo "$log_entry" >> "/tmp/${LOG_PREFIX}_$(date +%Y-%m-%d).log"
-    echo "Utilisation du fichier de fallback: /tmp/${LOG_PREFIX}_$(date +%Y-%m-%d).log" >&2
+    echo "$log_entry" >> "/tmp/${module:-$LOG_PREFIX}_$(date +%Y-%m-%d).log"
+    echo "Utilisation du fichier de fallback: /tmp/${module:-$LOG_PREFIX}_$(date +%Y-%m-%d).log" >&2
     return 1
 }
 
 # Fonction pour rotation des logs
 rotate_logs() {
     local max_days="${1:-7}"  # Nombre de jours à conserver par défaut
-    local log_pattern="${2:-${LOG_PREFIX}_*.log}"  # Pattern des fichiers à traiter
+    local log_pattern="${2:-*.log}"  # Pattern des fichiers à traiter
     
     find "$LOG_DIR" -name "$log_pattern" -type f -mtime +$max_days -delete 2>/dev/null
     if [ $? -eq 0 ]; then
@@ -225,7 +237,7 @@ test_logger() {
     print_log "ERROR" "logger_test" "Test de message niveau ERROR"
     print_log "CRITICAL" "logger_test" "Test de message niveau CRITICAL"
     
-    echo "Tests du logger terminés. Vérifier le fichier: $(get_log_file)"
+    echo "Tests du logger terminés. Vérifier le fichier: $(get_log_file 'logger_test')"
 }
 
 # Si ce script est exécuté directement et non importé

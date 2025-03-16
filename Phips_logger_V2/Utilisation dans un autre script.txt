@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Définir un nom de fichier de log personnalisé (AVANT d'importer le logger)
+LOG_FILENAME="mon_application"
+
 # Importer le logger
 LOGGER_PATH="/usr/local/bin/phips_logger/universal_logger.sh"
 if [ -f "$LOGGER_PATH" ]; then
@@ -9,7 +12,7 @@ else
     exit 1
 fi
 
-# Utilisations du logger
+# Utilisations du logger - tous ces logs iront dans le même fichier "mon_application_YYYY-MM-DD.log"
 print_log "INFO" "mon_script" "Démarrage du script"
 print_log "DEBUG" "mon_script" "Variable: $var"
 print_log "WARNING" "mon_script" "Attention: quota presque atteint"
