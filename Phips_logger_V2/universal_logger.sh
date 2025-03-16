@@ -5,12 +5,11 @@
 # Version: 2025.03.16
 #########################################################
 
-# Configuration par défaut (peut être surchargée)
+# Chemin du fichier de configuration
 DEFAULT_CONFIG_FILE="/etc/phips_logger/logger_config.cfg"
 DEFAULT_LOG_DIR="/var/log/phips_logger"
-DEFAULT_LOG_LEVEL="INFO"
-DEFAULT_NOTIFICATION_LEVEL="WARNING"
-DEFAULT_ENABLE_NOTIFICATIONS="false"
+
+
 
 # Charger la configuration si spécifiée
 CONFIG_FILE=${LOGGER_CONFIG_FILE:-$DEFAULT_CONFIG_FILE}
@@ -22,11 +21,15 @@ else
 fi
 
 # Définir les paramètres avec des valeurs par défaut si non définies
+# Toutes les valeurs par défaut sont maintenant définies ici et non en double
 LOG_DIR="${LOG_DIR:-$DEFAULT_LOG_DIR}"
-LOG_LEVEL="${LOG_LEVEL:-$DEFAULT_LOG_LEVEL}"
-NOTIFICATION_LEVEL="${NOTIFICATION_LEVEL:-$DEFAULT_NOTIFICATION_LEVEL}"
-ENABLE_NOTIFICATIONS="${ENABLE_NOTIFICATIONS:-$DEFAULT_ENABLE_NOTIFICATIONS}"
-LOG_PREFIX="${LOG_PREFIX:-phips}"
+LOG_PREFIX="${LOG_PREFIX:-phips_logger}"
+LOG_LEVEL="${LOG_LEVEL:-INFO}"
+USE_SYSLOG="${USE_SYSLOG:-false}"
+ENABLE_NOTIFICATIONS="${ENABLE_NOTIFICATIONS:-false}"
+NOTIFICATION_LEVEL="${NOTIFICATION_LEVEL:-WARNING}"
+TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
+TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-}"
 HOSTNAME="${HOSTNAME:-$(hostname)}"
 
 # Définition des niveaux de log
