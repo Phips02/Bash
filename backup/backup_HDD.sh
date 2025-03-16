@@ -22,7 +22,7 @@ port="22"
 
 max_backups=3
 
-# Répertoires source à sauvegarder sur le Synology
+# Répertoires source à sauvegarder depuis le Synology
 source_directories=("$user@$server_ip:/volume1/Proxmox/dump" "$user@$server_ip:/volume1/Proxmox/images")  # Liste des répertoires à sauvegarder
 
 

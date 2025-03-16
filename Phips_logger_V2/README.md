@@ -8,14 +8,19 @@ Un système de logging universel en Bash pour vos scripts et applications.
 
 Utilisez le script de déploiement pour une installation rapide et complète :
 
-```bash
+
 # Télécharger le script de déploiement
-curl -O https://raw.githubusercontent.com/Phips02/Bash/main/Phips_logger_V2/deploy.sh
+```bash
+sudo curl -O https://raw.githubusercontent.com/Phips02/Bash/main/Phips_logger_V2/deploy.sh
+```
 
 # Rendre le script exécutable
-chmod +x deploy.sh
+```bash
+sudo chmod +x deploy.sh
+```
 
 # Exécuter le script d'installation
+```bash
 sudo ./deploy.sh
 ```
 
@@ -111,17 +116,6 @@ ENABLE_NOTIFICATIONS="false"         # Activer/désactiver les notifications Tel
 NOTIFICATION_LEVEL="WARNING"         # Niveau minimum pour envoyer des notifications
 TELEGRAM_BOT_TOKEN=""                # Token de votre bot Telegram
 TELEGRAM_CHAT_ID=""                  # ID du chat/groupe où envoyer les notifications
-```
-
-### Configuration par environnement
-
-Vous pouvez également surcharger les options de configuration via des variables d'environnement :
-
-```bash
-export LOG_DIR="/var/log/mon_application"
-export LOG_PREFIX="app"
-export LOG_LEVEL="DEBUG"
-source /usr/local/bin/phips_logger/universal_logger.sh
 ```
 
 ## Fonctionnalités
